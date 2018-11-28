@@ -1,7 +1,7 @@
 package bingo_mvc
 
 import (
-	"github.com/aosfather/bingo/utils"
+	utils "github.com/aosfather/bingo_utils"
 	"html/template"
 	"io"
 )

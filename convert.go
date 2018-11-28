@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	utils "github.com/aosfather/bingo_utils"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
-
-	"github.com/aosfather/bingo/utils"
 )
 
 /*
@@ -127,88 +124,4 @@ func addParamsToForm(values url.Values, p Params) {
 			values[p1.Key] = []string{p1.Value}
 		}
 	}
-}
-
-//解析输入
-func parseRequest(logger utils.Log, request *http.Request, p Params, target interface{}) {
-	//静态资源的处理
-	if sr, ok := target.(*StaticResource); ok {
-		sr.Type = request.Header.Get(_CONTENT_TYPE)
-		sr.Uri = request.RequestURI
-		return
-	}
-
-	contentType := request.Header.Get(_CONTENT_TYPE)
-	if _CONTENT_TYPE_JSON == contentType || _CONTENT_JSON == contentType || strings.Contains(contentType, _CONTENT_TYPE_JSON) { //处理为json的输入
-		input, err := ioutil.ReadAll(request.Body)
-		logger.Debug(string(input))
-		defer request.Body.Close()
-		if err == nil {
-			if request.Form == nil {
-				request.ParseForm()
-				addParamsToForm(request.Form, p)
-			}
-			//parameters := make(map[string]interface{})
-			//err=json.Unmarshal(input, &parameters)
-			//if err!=nil {
-			//	logger.Error("parse request body as json error:%s",err)
-			//}
-			//logger.Debug("%v",parameters)
-
-			utils.FillStructByForm(request.Form, target)
-
-			jsonTarget := target
-			if sr, ok := target.(MutiStruct); ok {
-
-				jsonTarget = sr.GetData()
-
-			}
-
-			err = json.Unmarshal(input, jsonTarget)
-			if err != nil {
-				logger.Error("parse request body as json error:%s", err)
-			}
-
-		} else {
-			logger.Debug("read request body error:%s", err)
-		}
-
-	} else { //标准form的处理
-		if request.Form == nil {
-			request.ParseForm()
-			addParamsToForm(request.Form, p)
-		}
-
-		formvalues := request.Form
-		logger.Debug("form:%s", formvalues)
-
-		if utils.IsMap(target) {
-			if sr, ok := target.(map[string]string); ok {
-				for key, _ := range formvalues {
-					sr[key] = formvalues.Get(key)
-				}
-			}
-		} else {
-			utils.FillStructByForm(request.Form, target)
-		}
-
-		if sr, ok := target.(MutiStruct); ok {
-			input, err := ioutil.ReadAll(request.Body)
-			logger.Debug("input body:%s", input)
-			defer request.Body.Close()
-			if err == nil {
-				//
-				if sr.GetDataType() == "json" {
-					parameters := make(map[string]interface{})
-					json.Unmarshal(input, &parameters)
-					utils.FillStruct(parameters, sr.GetData())
-				} else if sr.GetDataType() == "xml" {
-					xml.Unmarshal(input, sr.GetData())
-				}
-
-			}
-		}
-
-	}
-
 }
