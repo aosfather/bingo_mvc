@@ -31,7 +31,7 @@ Hibernate Validator 附加的 constraint
 */
 import (
 	"fmt"
-	"github.com/aosfather/bingo/utils"
+	utils "github.com/aosfather/bingo_utils"
 	"reflect"
 	"regexp"
 	"strconv"

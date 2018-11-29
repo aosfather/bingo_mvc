@@ -2,7 +2,7 @@ package bingo_mvc
 
 import (
 	"fmt"
-	"github.com/aosfather/bingo/utils"
+	utils "github.com/aosfather/bingo_utils"
 	"mime"
 	"os"
 	"strings"

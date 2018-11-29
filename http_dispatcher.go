@@ -3,7 +3,7 @@ package bingo_mvc
 import (
 	"encoding/json"
 	"encoding/xml"
-	"github.com/aosfather/bingo/utils"
+	utils "github.com/aosfather/bingo_utils"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -13,7 +13,6 @@ import (
 type HttpDispatcher struct {
 	abstractDispatcher
 	server         *http.Server
-	logger         utils.Log
 	interceptor    defaultHandlerInterceptor
 	defaultConvert defaultResponseConverter
 }
@@ -29,7 +28,7 @@ func (this *HttpDispatcher) Run() {
 	if this.server != nil {
 		return
 	}
-	this.server = &http.Server{Addr: ":" + strconv.Itoa(this.port), Handler: &this.router}
+	this.server = &http.Server{Addr: ":" + strconv.Itoa(this.port), Handler: this}
 	this.server.ListenAndServe()
 }
 
@@ -92,7 +91,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 	uri := request.RequestURI
 	rule, p := this.router.match(uri)
 	handler := rule.methodHandler
-
+	this.logger.Debug("request %s", uri)
 	//handler前拦截器处理
 	if !this.interceptor.PreHandle(writer, request, rule) {
 		return

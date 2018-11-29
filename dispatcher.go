@@ -10,8 +10,16 @@ type abstractDispatcher struct {
 	port         int
 	staticRoot   string
 	templateRoot string
+	logger       utils.Log
 }
 
+func (this *abstractDispatcher) SetLog(log utils.Log) {
+	this.logger = log
+}
+func (this *abstractDispatcher) SetPort(p int) {
+	this.port = p
+
+}
 func (this *abstractDispatcher) SetRoot(static, template string) {
 	this.staticRoot = static
 	this.templateRoot = template
