@@ -5,33 +5,27 @@ import (
 	"strings"
 )
 
-type abstractDispatcher struct {
+type AbstractDispatcher struct {
 	router       routerMapper
-	port         int
+	Port         int
 	staticRoot   string
 	templateRoot string
-	logger       utils.Log
+	Logger       utils.Log
 }
 
-func (this *abstractDispatcher) SetLog(log utils.Log) {
-	this.logger = log
-}
-func (this *abstractDispatcher) SetPort(p int) {
-	this.port = p
-
-}
-func (this *abstractDispatcher) SetRoot(static, template string) {
+func (this *AbstractDispatcher) SetRoot(static, template string) {
 	this.staticRoot = static
 	this.templateRoot = template
+	this.router.SetStaticControl(this.staticRoot, this.Logger)
 }
 
-func (this *abstractDispatcher) AddHandler(url string, handler HttpMethodHandler) {
+func (this *AbstractDispatcher) AddHandler(url string, handler HttpMethodHandler) {
 	var rule RouterRule
 	rule.Init(url, handler)
 	this.router.AddRouter(&rule)
 }
 
-func (this *abstractDispatcher) AddController(c HttpController) {
+func (this *AbstractDispatcher) AddController(c HttpController) {
 	if c != nil {
 		c.Init()
 		url := c.GetUrl()
@@ -42,8 +36,12 @@ func (this *abstractDispatcher) AddController(c HttpController) {
 	}
 }
 
-func (this *abstractDispatcher) AddInterceptor(h CustomHandlerInterceptor) {
+func (this *AbstractDispatcher) AddInterceptor(h CustomHandlerInterceptor) {
 
+}
+
+func (this *AbstractDispatcher) MatchURI(uri string) (*RouterRule, Params) {
+	return this.router.match(uri)
 }
 
 /*

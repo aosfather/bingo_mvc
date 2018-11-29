@@ -11,15 +11,15 @@ import (
 )
 
 type HttpDispatcher struct {
-	abstractDispatcher
+	AbstractDispatcher
 	server         *http.Server
 	interceptor    defaultHandlerInterceptor
 	defaultConvert defaultResponseConverter
 }
 
 func (this *HttpDispatcher) Init() {
-	if this.port == 0 {
-		this.port = 8990
+	if this.Port == 0 {
+		this.Port = 8990
 	}
 
 }
@@ -28,7 +28,7 @@ func (this *HttpDispatcher) Run() {
 	if this.server != nil {
 		return
 	}
-	this.server = &http.Server{Addr: ":" + strconv.Itoa(this.port), Handler: this}
+	this.server = &http.Server{Addr: ":" + strconv.Itoa(this.Port), Handler: this}
 	this.server.ListenAndServe()
 }
 
@@ -91,7 +91,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 	uri := request.RequestURI
 	rule, p := this.router.match(uri)
 	handler := rule.methodHandler
-	this.logger.Debug("request %s", uri)
+	this.Logger.Debug("request %s", uri)
 	//handler前拦截器处理
 	if !this.interceptor.PreHandle(writer, request, rule) {
 		return
@@ -130,7 +130,7 @@ func (this *HttpDispatcher) parseRequest(request *http.Request, p Params, target
 	contentType := request.Header.Get(_CONTENT_TYPE)
 	if _CONTENT_TYPE_JSON == contentType || _CONTENT_JSON == contentType || strings.Contains(contentType, _CONTENT_TYPE_JSON) { //处理为json的输入
 		input, err := ioutil.ReadAll(request.Body)
-		this.logger.Debug(string(input))
+		this.Logger.Debug(string(input))
 		defer request.Body.Close()
 		if err == nil {
 			if request.Form == nil {
@@ -149,11 +149,11 @@ func (this *HttpDispatcher) parseRequest(request *http.Request, p Params, target
 
 			err = json.Unmarshal(input, jsonTarget)
 			if err != nil {
-				this.logger.Error("parse request body as json error:%s", err)
+				this.Logger.Error("parse request body as json error:%s", err)
 			}
 
 		} else {
-			this.logger.Debug("read request body error:%s", err)
+			this.Logger.Debug("read request body error:%s", err)
 		}
 
 	} else { //标准form的处理
@@ -163,7 +163,7 @@ func (this *HttpDispatcher) parseRequest(request *http.Request, p Params, target
 		}
 
 		formvalues := request.Form
-		this.logger.Debug("form:%s", formvalues)
+		this.Logger.Debug("form:%s", formvalues)
 
 		if utils.IsMap(target) {
 			if sr, ok := target.(map[string]string); ok {
@@ -177,7 +177,7 @@ func (this *HttpDispatcher) parseRequest(request *http.Request, p Params, target
 
 		if sr, ok := target.(MutiStruct); ok {
 			input, err := ioutil.ReadAll(request.Body)
-			this.logger.Debug("input body:%s", input)
+			this.Logger.Debug("input body:%s", input)
 			defer request.Body.Close()
 			if err == nil {
 				//
