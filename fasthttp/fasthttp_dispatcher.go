@@ -15,7 +15,7 @@ type FastHTTPDispatcher struct {
 }
 
 func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
-
+	ctx.Response.AppendBodyString("hello bingo")
 }
 
 func (this *FastHTTPDispatcher) Init() {
@@ -32,5 +32,7 @@ func (this *FastHTTPDispatcher) Run() {
 }
 
 func (this *FastHTTPDispatcher) Shutdown() {
-
+	if this.server != nil {
+		this.server.Shutdown()
+	}
 }
