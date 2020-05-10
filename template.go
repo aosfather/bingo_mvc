@@ -15,54 +15,53 @@ import (
 */
 
 type TemplateEngine struct {
-	RootPath                string //模板根路径
-	SubTemplatePath         string //子模板及片段定义的目录
-	Suffix                  string //模板文件后缀
-	CacheSize               int    //缓存模板个数
-	ErrorTemplate           string //错误模板
-	useDefaultErrorTemplate bool   //是否使用默认错误模板
+	RootPath                string                        //模板根路径
+	SubTemplatePath         string                        //子模板及片段定义的目录
+	Suffix                  string                        //模板文件后缀
+	CacheSize               int                           //缓存模板个数
+	ErrorTemplate           string                        //错误模板
+	useDefaultErrorTemplate bool                          //是否使用默认错误模板
+	templates               map[string]*template.Template //模板缓存
 }
 
-func (this *TemplateEngine) Render(w io.Writer, templateName string, data interface{}) {
+func (this *TemplateEngine) Init() {
+	this.templates = make(map[string]*template.Template)
+}
+func (this *TemplateEngine) Render(w io.Writer, templateName string, data interface{}) BingoError {
 	//use cache
-
-	//执行template
-	e := this.writeTemplate(w, templateName, data)
-	if e != nil {
-		this.writeError(w, e)
-	}
-}
-
-func (this *TemplateEngine) writeTemplate(w io.Writer, templateName string, data interface{}) BingoError {
+	t := this.templates[templateName]
 	var templateError BingoError = nil
-	templateFile := this.getRealPath(templateName)
-	if utils.IsFileExist(templateFile) {
-		tmpl, err := template.New(templateName).ParseFiles(templateFile)
-		if err != nil {
-			templateError = utils.CreateError(500, "template load error:"+err.Error())
-
-		} else {
-			err = tmpl.Execute(w, data)
+	if t == nil {
+		templateFile := this.getRealPath(templateName)
+		var err error
+		if utils.IsFileExist(templateFile) {
+			t, err = template.New(templateName).ParseFiles(templateFile)
 			if err != nil {
-				templateError = utils.CreateError(500, "template render error:"+err.Error())
-
+				templateError = CreateError(500, "template load error:"+err.Error())
+			} else {
+				this.templates[templateName] = t
 			}
 		}
-	} else {
-		templateError = utils.CreateError(404, "View file '"+templateName+"' not found")
+	}
+	//执行template
+	if t != nil {
+		err := t.Execute(w, data)
+		if err != nil {
+			templateError = CreateErrorF(500, "template render error:%s", err.Error())
+		}
 	}
 	return templateError
 }
 
-func (this *TemplateEngine) writeError(w io.Writer, err BingoError) {
+func (this *TemplateEngine) WriteError(w io.Writer, err BingoError) {
 	if this.useDefaultErrorTemplate {
 		tmpl, _ := template.New("error").Parse("<html><body><h1>{{.Code}}</h1><h3>{{.Error}}</h3></body></html>")
 		tmpl.Execute(w, err)
 	} else {
-		e := this.writeTemplate(w, this.ErrorTemplate, err)
+		e := this.Render(w, this.ErrorTemplate, err)
 		if e != nil {
 			this.useDefaultErrorTemplate = true
-			this.writeError(w, err)
+			this.WriteError(w, err)
 		}
 	}
 

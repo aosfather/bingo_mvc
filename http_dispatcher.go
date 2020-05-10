@@ -88,34 +88,34 @@ func (this *HttpDispatcher) doMethod(request *http.Request, handler HttpMethodHa
 }
 
 func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	uri := request.RequestURI
-	rule, p := this.router.match(uri)
-	handler := rule.methodHandler
-	this.Logger.Debug("request %s", uri)
-	//handler前拦截器处理
-	if !this.interceptor.PreHandle(writer, request, rule) {
-		return
-	}
-
-	//执行handler处理
-	obj, err := this.doMethod(request, handler, p)
-
-	//handler处理完后，拦截器进行额外补充处理
-	if mv, ok := obj.(ModelView); ok {
-		this.interceptor.PostHandle(writer, request, rule, &mv)
-	} else {
-		this.interceptor.PostHandle(writer, request, rule, nil)
-	}
-
-	//进行结果输出
-	if err != nil {
-		this.doConvert(writer, rule, request, err)
-	} else {
-		this.doConvert(writer, rule, request, obj)
-	}
-
-	//请求处理完后拦截器进行处理
-	this.interceptor.AfterCompletion(writer, request, rule, err)
+	//uri := request.RequestURI
+	//rule, p := this.router.match(uri)
+	//handler := rule.methodHandler
+	//this.Logger.Debug("request %s", uri)
+	////handler前拦截器处理
+	//if !this.interceptor.PreHandle(writer, request, rule) {
+	//	return
+	//}
+	//
+	////执行handler处理
+	//obj, err := this.doMethod(request, handler, p)
+	//
+	////handler处理完后，拦截器进行额外补充处理
+	//if mv, ok := obj.(ModelView); ok {
+	//	this.interceptor.PostHandle(writer, request, rule, &mv)
+	//} else {
+	//	this.interceptor.PostHandle(writer, request, rule, nil)
+	//}
+	//
+	////进行结果输出
+	//if err != nil {
+	//	this.doConvert(writer, rule, request, err)
+	//} else {
+	//	this.doConvert(writer, rule, request, obj)
+	//}
+	//
+	////请求处理完后拦截器进行处理
+	//this.interceptor.AfterCompletion(writer, request, rule, err)
 
 }
 
