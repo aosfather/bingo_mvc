@@ -101,6 +101,7 @@ const (
 	Json    StyleType = 11
 	Xml     StyleType = 12
 	UrlForm StyleType = 13
+	Stream  StyleType = 20
 )
 
 func ParseHttpStyleType(styleName string) StyleType {
@@ -110,6 +111,8 @@ func ParseHttpStyleType(styleName string) StyleType {
 		return Json
 	case "XML":
 		return Xml
+	case "FILE":
+		return Stream
 	default:
 		return UrlForm
 	}

@@ -1,6 +1,8 @@
 package bingo_mvc
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	utils "github.com/aosfather/bingo_utils"
 	"io"
@@ -37,11 +39,11 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 	if t.Kind() == reflect.Ptr { //指针类型获取真正type需要调用Elem
 		t = t.Elem()
 	}
+	//获取请求参数
 	paramter := reflect.New(t).Interface()
 	err := input(paramter)
-	if err != nil {
-
-	} else {
+	if err == nil {
+		//处理，并渲染
 		result := this.Handle(paramter)
 		if this.Response != nil {
 			err = this.Response(writer, result)
@@ -50,7 +52,9 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 		}
 
 		//错误处理进行输出
+		if err != nil {
 
+		}
 	}
 
 }
@@ -199,9 +203,54 @@ func setRequestMapper(exp string, mapper *RequestMapper, handles map[string]CMap
 
 }
 
+// 结果转换处理
 var convertors map[StyleType]Convertor
+var templateManager *TemplateEngine
 
 func init() {
 	convertors = make(map[StyleType]Convertor)
+	convertors[Json] = convertToJson
+	convertors[Xml] = convertToXml
+	convertors[UrlForm] = convertToHtmlByTemplate
+}
 
+// 转json
+func convertToJson(writer io.Writer, obj interface{}) error {
+	if obj != nil {
+		data, err := json.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		writer.Write(data)
+	}
+	return nil
+}
+
+// 转xml
+func convertToXml(writer io.Writer, obj interface{}) error {
+	if obj != nil {
+		data, err := xml.Marshal(obj)
+		if err != nil {
+			return err
+		}
+		writer.Write(data)
+	}
+	return nil
+}
+
+// 模板转换
+func convertToHtmlByTemplate(writer io.Writer, obj interface{}) error {
+	view, ok := obj.(*ModelView)
+	if ok {
+		name := view.View
+		if templateManager != nil {
+			err := templateManager.Render(writer, name, view.Model)
+			if err != nil {
+				return fmt.Errorf("code:%d msg:%s", err.Code(), err.Error())
+			}
+			return nil
+		}
+
+	}
+	return fmt.Errorf("not found modelview object")
 }
