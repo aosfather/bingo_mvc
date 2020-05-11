@@ -43,7 +43,12 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 
 	} else {
 		result := this.Handle(paramter)
-		err = this.Response(writer, result)
+		if this.Response != nil {
+			err = this.Response(writer, result)
+		} else {
+			writer.Write([]byte(fmt.Sprintf("%v", result)))
+		}
+
 		//错误处理进行输出
 
 	}
@@ -54,12 +59,23 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 type Convertor func(writer io.Writer, obj interface{}) error
 
 //Request响应函数
-type HandleFunction func(input interface{}) interface{}
+type HandleFunction func(interface{}) interface{}
 
 //控制器
 type Controller interface {
 	Select(writer io.Writer, input func(interface{}) error)
 	IsSupportMethod(m HttpMethodType) bool
+}
+
+//controller的mapp
+type CMap struct {
+	Handle    HandleFunction
+	Parameter interface{}
+}
+
+//多个handle的控制器
+type MutiController interface {
+	GetHandles() map[string]CMap
 }
 
 //静态资源处理
@@ -89,4 +105,103 @@ func getMedia(fileFix string) string {
 
 	}
 	return media
+}
+
+//请求映射
+//格式:mapper:"name(名称);url(地址);method(GET|POST);style(XML|JOSN|HTML)"。
+const (
+	_RequestMapperTag = "mapper"
+)
+
+func buildRequestMapperByHandlefunc(name string, url []string, input interface{}, handle HandleFunction, methods []HttpMethodType, style StyleType) *RequestMapper {
+	r := &RequestMapper{}
+	r.Name = name
+	r.Url = url
+	r.Request = input
+	r.ResponseStyle = style
+	r.Response = nil //输出转换器
+	r.Methods = methods
+	r.Handle = handle
+	return r
+}
+func buildRequestMapperByStructTag(obj interface{}) []*RequestMapper {
+	mc, ok := obj.(MutiController)
+	if !ok {
+		return nil
+	}
+	handleMap := mc.GetHandles()
+	objT, objV, err := utils.GetStructTypeValue(obj)
+	if err != nil {
+		return nil
+	}
+	var mappers []*RequestMapper
+	for i := 0; i < objT.NumField(); i++ {
+		f := objT.Field(i)
+		vf := objV.Field(i)
+		if !vf.CanInterface() {
+			continue
+		}
+
+		tag := f.Tag.Get(_RequestMapperTag)
+		if len(tag) == 0 {
+			continue
+		} else {
+			rules := strings.Split(tag, ";")
+			if len(rules) > 0 {
+				mapper := &RequestMapper{}
+				for _, rule := range rules {
+					setRequestMapper(rule, mapper, handleMap)
+				}
+				mappers = append(mappers, mapper)
+			}
+
+		}
+
+	}
+	return mappers
+}
+
+func setRequestMapper(exp string, mapper *RequestMapper, handles map[string]CMap) {
+	vexp := strings.TrimSpace(exp)
+	ruleStart := strings.Index(vexp, "(")
+	var propertyName, rule string
+	if ruleStart < 0 {
+		propertyName = strings.ToLower(vexp)
+		rule = ""
+	} else {
+		propertyName = strings.TrimSpace(vexp[:ruleStart])
+		propertyName = strings.ToLower(propertyName)
+		ruleEnd := strings.Index(vexp, ")")
+		if ruleEnd < 0 {
+			ruleEnd = len(vexp)
+		}
+		rule = strings.TrimSpace(vexp[ruleStart+1 : ruleEnd])
+	}
+
+	switch propertyName {
+	case "name":
+		mapper.Name = rule
+		h := handles[rule]
+		if h.Handle != nil {
+			mapper.Handle = h.Handle
+			mapper.Request = h.Parameter
+		}
+
+	case "url":
+		mapper.Url = append(mapper.Url, rule)
+	case "style":
+		mapper.ResponseStyle = ParseHttpStyleType(rule)
+		mapper.Response = convertors[mapper.ResponseStyle]
+	case "method":
+		mapper.Methods = append(mapper.Methods, ParseHttpMethodType(rule))
+
+	}
+
+}
+
+var convertors map[StyleType]Convertor
+
+func init() {
+	convertors = make(map[StyleType]Convertor)
+
 }

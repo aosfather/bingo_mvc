@@ -25,6 +25,7 @@ func (this *AbstractDispatcher) SetDispatchManager(d *DispatchManager) {
 func (this *AbstractDispatcher) AddRequestMapper(r *RequestMapper) {
 	if this.dispatchManager == nil {
 		this.dispatchManager = &DispatchManager{}
+		this.dispatchManager.Init()
 	}
 	this.dispatchManager.AddRequestMapper("", r)
 }
@@ -82,4 +83,24 @@ func (this *AbstractDispatcher) afterCompletion(writer io.Writer, request func(k
 		}
 	}
 	return nil
+}
+
+func (this *AbstractDispatcher) AddRequestMapperByHandleFunction(name string, url []string, input interface{}, handle HandleFunction, methods []HttpMethodType) {
+	r := buildRequestMapperByHandlefunc(name, url, input, handle, methods, UrlForm)
+	this.AddRequestMapper(r)
+}
+
+/**
+  通过mapper 的struct tag标签加入映射
+*/
+func (this *AbstractDispatcher) AddRequestMapperBystruct(target interface{}, parameters ...interface{}) {
+	mappers := buildRequestMapperByStructTag(target)
+
+	if mappers != nil && len(mappers) > 0 {
+		for index, mapper := range mappers {
+			mapper.Request = parameters[index]
+			this.AddRequestMapper(mapper)
+		}
+	}
+
 }

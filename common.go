@@ -103,6 +103,18 @@ const (
 	UrlForm StyleType = 13
 )
 
+func ParseHttpStyleType(styleName string) StyleType {
+	styleName = strings.ToUpper(styleName)
+	switch styleName {
+	case "JSON":
+		return Json
+	case "XML":
+		return Xml
+	default:
+		return UrlForm
+	}
+}
+
 func (this StyleType) GetContentType() string {
 	switch this {
 	case Json:
