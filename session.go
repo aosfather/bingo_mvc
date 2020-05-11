@@ -5,11 +5,24 @@ import (
 	"encoding/base64"
 	"github.com/go-redis/redis"
 	"io"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
 )
+
+//cookie 的属性
+type CookieKey byte
+
+const (
+	CK_Name     CookieKey = 1
+	CK_Value    CookieKey = 2
+	CK_Path     CookieKey = 3
+	CK_MaxAge   CookieKey = 4
+	CK_HttpOnly CookieKey = 5
+)
+
+type CookieReader func(key string) map[CookieKey]interface{}
+type CookieWriter func(key string, value map[CookieKey]interface{}) error
 
 type SessionStore interface {
 	Exist(id string) bool
@@ -114,16 +127,16 @@ func (this *sessionManager) Init() {
 	go this.gc()
 }
 
-func (this *sessionManager) getSession(w http.ResponseWriter, r *http.Request) *HttpSession {
+func (this *sessionManager) getSession(w CookieWriter, r CookieReader) *HttpSession {
 
-	var cookie, err = r.Cookie(this.cookieName)
+	var cookie = r(this.cookieName)
 
-	if cookie != nil && err == nil {
+	if cookie != nil && len(cookie) > 0 {
 
 		this.lock.Lock()
 		defer this.lock.Unlock()
 
-		sessionID := cookie.Value
+		sessionID := cookie[CK_Value].(string)
 		if session, ok := this.sessions[sessionID]; ok {
 			session.lastTimeAccessed = time.Now() //判断合法性的同时，更新最后的访问时间
 			return session
@@ -139,14 +152,19 @@ func (this *sessionManager) getSession(w http.ResponseWriter, r *http.Request) *
 
 }
 
-func (this *sessionManager) create(w http.ResponseWriter) *HttpSession {
+func (this *sessionManager) create(w CookieWriter) *HttpSession {
 	newSessionID := newSessionID()
 	session := &HttpSession{mSessionID: newSessionID, lastTimeAccessed: time.Now(), mNew: true, mStrore: this.store}
 	this.sessions[newSessionID] = session
 	//让浏览器cookie设置过期时间
-	cookie := http.Cookie{Name: this.cookieName, Value: newSessionID, Path: "/", HttpOnly: true, MaxAge: int(this.mMaxLifeTime)}
-	http.SetCookie(w, &cookie)
-	return nil
+	cookie := make(map[CookieKey]interface{})
+	cookie[CK_Name] = this.cookieName
+	cookie[CK_Value] = newSessionID
+	cookie[CK_Path] = "/"
+	cookie[CK_HttpOnly] = true
+	cookie[CK_MaxAge] = int(this.mMaxLifeTime)
+	w(this.cookieName, cookie)
+	return session
 }
 
 func (this *sessionManager) deleteSession(id string) {

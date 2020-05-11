@@ -2,6 +2,7 @@ package bingo_mvc
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -128,4 +129,25 @@ func (this StyleType) GetContentType() string {
 		return "text/html;charset=utf-8"
 	}
 	return "text/html"
+}
+
+type ModelView struct {
+	View  string
+	Model interface{}
+}
+
+type FileHandler interface {
+	io.Reader
+	io.Closer
+}
+
+type StaticView struct {
+	Name   string      //资源名称
+	Media  string      //资源类型
+	Length int         //资源长度
+	Reader FileHandler //资源内容
+}
+
+type Context interface {
+	GetCookie(key string) string
 }
