@@ -4,6 +4,7 @@ import (
 	"fmt"
 	utils "github.com/aosfather/bingo_utils"
 	"io"
+	"mime"
 	"os"
 	"reflect"
 	"strings"
@@ -17,8 +18,9 @@ type RequestMapper struct {
 	//请求参数类型
 	Request interface{}
 	//返回值处理器
-	Response Convertor
-	Handle   HandleFunction
+	Response      Convertor
+	Handle        HandleFunction
+	ResponseStyle StyleType
 }
 
 func (this *RequestMapper) IsSupportMethod(m HttpMethodType) bool {
@@ -55,7 +57,7 @@ type Convertor func(writer io.Writer, obj interface{}) error
 type HandleFunction func(input interface{}) interface{}
 
 //控制器
-type Control interface {
+type Controller interface {
 	Select(writer io.Writer, input func(interface{}) error)
 	IsSupportMethod(m HttpMethodType) bool
 }
@@ -79,4 +81,12 @@ func (this *staticControl) Getstaticfile(url string, writer io.Writer) (string, 
 		return media, nil
 	}
 	return "", fmt.Errorf("file not exist!")
+}
+
+func getMedia(fileFix string) string {
+	media := mime.TypeByExtension(fileFix)
+	if media == "" {
+
+	}
+	return media
 }

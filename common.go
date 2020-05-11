@@ -1,6 +1,9 @@
 package bingo_mvc
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 //带错误码的错误接口
 type BingoError interface {
@@ -75,3 +78,39 @@ const (
 const (
 	Default_Port = 8080
 )
+
+func ParseHttpMethodType(method string) HttpMethodType {
+	method = strings.ToUpper(method)
+	switch method {
+	case Method_GET:
+		return Get
+	case Method_POST:
+		return Post
+	case Method_PUT:
+		return Put
+	case Method_DELETE:
+		return Del
+	}
+	return Get
+}
+
+//数据格式类型
+type StyleType byte
+
+const (
+	Json    StyleType = 11
+	Xml     StyleType = 12
+	UrlForm StyleType = 13
+)
+
+func (this StyleType) GetContentType() string {
+	switch this {
+	case Json:
+		return "application/json;charset=utf-8"
+	case Xml:
+		return "text/xml;charset=utf-8"
+	case UrlForm:
+		return "text/html;charset=utf-8"
+	}
+	return "text/html"
+}

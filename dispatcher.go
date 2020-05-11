@@ -3,7 +3,6 @@ package bingo_mvc
 import (
 	utils "github.com/aosfather/bingo_utils"
 	"io"
-	"strings"
 )
 
 type Interceptor interface {
@@ -38,13 +37,13 @@ func (this *AbstractDispatcher) MatchUrl(u string) *RequestMapper {
 }
 
 //执行请求
-func (this *AbstractDispatcher) ExecuteRequest(r *RequestMapper, writer io.Writer, request func(key string) interface{}) {
+func (this *AbstractDispatcher) ExecuteRequest(r *RequestMapper, writer io.Writer, request func(key string) interface{}, input func(interface{}) error) {
 	if !this.preHandle(writer, request) {
 		return
 	}
 
 	//执行handler处理
-	r.Select(writer, nil)
+	r.Select(writer, input)
 	err := this.postHandle(writer, request, nil)
 
 	//请求处理完后拦截器进行处理
@@ -83,42 +82,4 @@ func (this *AbstractDispatcher) afterCompletion(writer io.Writer, request func(k
 		}
 	}
 	return nil
-}
-
-/*
-  路由映射
-*/
-
-type routerMapper struct {
-	routerTree    *node
-	staticHandler HttpMethodHandler
-	defaultRule   *RouterRule
-}
-
-func (this *routerMapper) AddRouter(rule *RouterRule) {
-	if this.routerTree == nil {
-		this.routerTree = &node{}
-	}
-	if rule != nil {
-		this.routerTree.addRoute(rule.url, rule)
-	}
-
-}
-
-func (this *routerMapper) match(uri string) (*RouterRule, Params) {
-	paramIndex := strings.Index(uri, "?")
-	realuri := uri
-	if paramIndex != -1 {
-		realuri = strings.TrimSpace((uri[:paramIndex]))
-	}
-
-	h, p, _ := this.routerTree.getValue(realuri)
-	if h == nil {
-		return &RouterRule{realuri, nil, this.staticHandler}, p
-	}
-	return h.(*RouterRule), p
-}
-
-func (this *routerMapper) SetStaticControl(path string, l utils.Log) {
-	this.staticHandler = &staticController{staticDir: path, log: l}
 }
