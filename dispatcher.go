@@ -1,6 +1,7 @@
 package bingo_mvc
 
 import (
+	"fmt"
 	utils "github.com/aosfather/bingo_utils"
 	"io"
 )
@@ -16,6 +17,7 @@ type AbstractDispatcher struct {
 	Logger          utils.Log
 	dispatchManager *DispatchManager
 	interceptors    []Interceptor
+	templateManager *TemplateEngine
 }
 
 func (this *AbstractDispatcher) SetDispatchManager(d *DispatchManager) {
@@ -23,10 +25,20 @@ func (this *AbstractDispatcher) SetDispatchManager(d *DispatchManager) {
 }
 
 func (this *AbstractDispatcher) AddRequestMapper(r *RequestMapper) {
+	if r == nil {
+		return
+	}
+
 	if this.dispatchManager == nil {
 		this.dispatchManager = &DispatchManager{}
 		this.dispatchManager.Init()
 	}
+
+	//使用模板来默认处理html格式
+	if r.ResponseStyle == UrlForm {
+		r.Response = this.convertToHtmlByTemplate
+	}
+
 	this.dispatchManager.AddRequestMapper("", r)
 }
 
@@ -103,4 +115,31 @@ func (this *AbstractDispatcher) AddRequestMapperBystruct(target interface{}, par
 		}
 	}
 
+}
+
+//使用模板引擎进行转换
+func (this *AbstractDispatcher) convertToHtmlByTemplate(writer io.Writer, obj interface{}) error {
+	view, ok := obj.(*ModelView)
+	if ok {
+		name := view.View
+		if this.templateManager != nil && name != "" {
+			err := this.templateManager.Render(writer, name, view.Model)
+			if err != nil {
+				return fmt.Errorf("code:%d msg:%s", err.Code(), err.Error())
+			}
+			return nil
+
+		}
+
+	}
+
+	//不需要使用模板，或者模板引擎为空
+	text, ok := obj.(string)
+	if ok {
+		writer.Write([]byte(text))
+	} else {
+		writer.Write([]byte(fmt.Sprintf("%v", obj)))
+	}
+
+	return nil
 }

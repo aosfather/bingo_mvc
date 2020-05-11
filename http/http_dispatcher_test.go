@@ -9,7 +9,7 @@ type MyRequest struct {
 	Name string `Field:"name"`
 }
 type MyHandle struct {
-	Test  string `mapper:"name(test);url(/test);method(GET);style(JSON)"`
+	Test  string `mapper:"name(test);url(/test);method(GET);style(HTML)"`
 	Test1 string `mapper:"name(test1);url(/test1);method(GET);style(JSON)"`
 }
 

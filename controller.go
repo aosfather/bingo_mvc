@@ -205,13 +205,11 @@ func setRequestMapper(exp string, mapper *RequestMapper, handles map[string]CMap
 
 // 结果转换处理
 var convertors map[StyleType]Convertor
-var templateManager *TemplateEngine
 
 func init() {
 	convertors = make(map[StyleType]Convertor)
 	convertors[Json] = convertToJson
 	convertors[Xml] = convertToXml
-	convertors[UrlForm] = convertToHtmlByTemplate
 }
 
 // 转json
@@ -236,21 +234,4 @@ func convertToXml(writer io.Writer, obj interface{}) error {
 		writer.Write(data)
 	}
 	return nil
-}
-
-// 模板转换
-func convertToHtmlByTemplate(writer io.Writer, obj interface{}) error {
-	view, ok := obj.(*ModelView)
-	if ok {
-		name := view.View
-		if templateManager != nil {
-			err := templateManager.Render(writer, name, view.Model)
-			if err != nil {
-				return fmt.Errorf("code:%d msg:%s", err.Code(), err.Error())
-			}
-			return nil
-		}
-
-	}
-	return fmt.Errorf("not found modelview object")
 }
