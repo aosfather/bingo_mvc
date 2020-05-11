@@ -66,7 +66,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 
 }
 
-func (this *HttpDispatcher) call(api *bingo_mvc.RequestMapper, request *http.Request, writer http.ResponseWriter) {
+func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request, writer http.ResponseWriter) {
 	//不支持文件流
 	if request.MultipartForm != nil {
 		writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
@@ -118,8 +118,8 @@ func (this *HttpDispatcher) call(api *bingo_mvc.RequestMapper, request *http.Req
 		return request.Header.Get(key)
 	}
 
-	this.ExecuteRequest(api, writer, headerFunc, inputfunc)
-	writer.Header().Set(bingo_mvc.CONTENT_TYPE, api.ResponseStyle.GetContentType())
+	st := this.ExecuteRequest(api, writer, headerFunc, inputfunc)
+	writer.Header().Set(bingo_mvc.CONTENT_TYPE, st.GetContentType())
 }
 
 func (this *HttpDispatcher) fillByForm(form url.Values, input interface{}) {

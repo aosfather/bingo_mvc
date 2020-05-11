@@ -41,26 +41,38 @@ func (this *AbstractDispatcher) AddRequestMapper(r *RequestMapper) {
 
 	this.dispatchManager.AddRequestMapper("", r)
 }
+func (this *AbstractDispatcher) AddController(domain string, name string, url string, control Controller) {
+	if control == nil {
+		return
+	}
 
-func (this *AbstractDispatcher) MatchUrl(u string) *RequestMapper {
+	if this.dispatchManager == nil {
+		this.dispatchManager = &DispatchManager{}
+		this.dispatchManager.Init()
+	}
+	this.dispatchManager.AddApi(domain, name, url, control)
+}
+
+func (this *AbstractDispatcher) MatchUrl(u string) Controller {
 	if this.dispatchManager != nil {
-		return this.dispatchManager.GetRequestMapper("", u)
+		return this.dispatchManager.GetController("", u)
 	}
 	return nil
 }
 
 //执行请求
-func (this *AbstractDispatcher) ExecuteRequest(r *RequestMapper, writer io.Writer, request func(key string) interface{}, input func(interface{}) error) {
+func (this *AbstractDispatcher) ExecuteRequest(r Controller, writer io.Writer, request func(key string) interface{}, input func(interface{}) error) StyleType {
 	if !this.preHandle(writer, request) {
-		return
+		return UrlForm
 	}
 
 	//执行handler处理
-	r.Select(writer, input)
+	st := r.Select(writer, input)
 	err := this.postHandle(writer, request, nil)
 
 	//请求处理完后拦截器进行处理
 	this.afterCompletion(writer, request, err)
+	return st
 
 }
 

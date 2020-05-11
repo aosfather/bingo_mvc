@@ -56,7 +56,7 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 
 }
 
-func (this *FastHTTPDispatcher) call(api *bingo_mvc.RequestMapper, ctx *fasthttp.RequestCtx) {
+func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.RequestCtx) {
 	//校验参数
 	contentType := string(ctx.Request.Header.ContentType())
 	//var input map[string]interface{} = make(map[string]interface{})
@@ -98,8 +98,8 @@ func (this *FastHTTPDispatcher) call(api *bingo_mvc.RequestMapper, ctx *fasthttp
 		return string(ctx.Request.Header.Peek(key))
 	}
 
-	this.ExecuteRequest(api, ctx.Response.BodyWriter(), headerFunc, inputfunc)
-	ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, api.ResponseStyle.GetContentType())
+	st := this.ExecuteRequest(api, ctx.Response.BodyWriter(), headerFunc, inputfunc)
+	ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, st.GetContentType())
 }
 
 func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{}) {

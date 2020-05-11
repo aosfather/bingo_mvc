@@ -34,7 +34,7 @@ func (this *RequestMapper) IsSupportMethod(m HttpMethodType) bool {
 	return false
 }
 
-func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) error) {
+func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) error) StyleType {
 	t := reflect.TypeOf(this.Request)
 	if t.Kind() == reflect.Ptr { //指针类型获取真正type需要调用Elem
 		t = t.Elem()
@@ -57,6 +57,8 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 		}
 	}
 
+	return this.ResponseStyle
+
 }
 
 //结果集转换器
@@ -67,7 +69,7 @@ type HandleFunction func(interface{}) interface{}
 
 //控制器
 type Controller interface {
-	Select(writer io.Writer, input func(interface{}) error)
+	Select(writer io.Writer, input func(interface{}) error) StyleType
 	IsSupportMethod(m HttpMethodType) bool
 }
 

@@ -89,3 +89,11 @@ func (this *DispatchManager) GetRequestMapper(domain, url string) *RequestMapper
 	}
 	return nil
 }
+
+func (this *DispatchManager) GetController(domain, url string) Controller {
+	r := this.GetApi(domain, url)
+	if r != nil {
+		return r.(Controller)
+	}
+	return nil
+}
