@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	Default_Port = 8080
+)
+
 //带错误码的错误接口
 type BingoError interface {
 	error
@@ -41,6 +45,7 @@ const (
 	Method_PUT    = "PUT"
 	Method_DELETE = "DELETE"
 	Method_PATCH  = "PATCH"
+	Method_HEAD   = "HEAD"
 
 	//返回码
 	Code_OK             = 200
@@ -76,10 +81,40 @@ const (
 	Head HttpMethodType = 24
 )
 
-const (
-	Default_Port = 8080
-)
+func (this *HttpMethodType) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var text string
+	unmarshal(&text)
+	if text == Method_GET {
+		*this = Get
+	} else if text == Method_POST {
+		*this = Post
+	} else if text == Method_PUT {
+		*this = Put
+	} else if text == Method_DELETE {
+		*this = Del
+	} else if text == Method_HEAD {
+		*this = Head
+	} else {
+		*this = 0
+		return fmt.Errorf("value is wrong! [ %s ]", text)
+	}
+	return nil
+}
 
+func (this HttpMethodType) MarshalYAML() (interface{}, error) {
+	if this == Get {
+		return Method_GET, nil
+	} else if this == Post {
+		return Method_POST, nil
+	} else if this == Put {
+		return Method_PUT, nil
+	} else if this == Del {
+		return Method_DELETE, nil
+	} else if this == Head {
+		return Method_HEAD, nil
+	}
+	return nil, fmt.Errorf("not surport %v", this)
+}
 func ParseHttpMethodType(method string) HttpMethodType {
 	method = strings.ToUpper(method)
 	switch method {
@@ -104,6 +139,33 @@ const (
 	UrlForm StyleType = 13
 	Stream  StyleType = 20
 )
+
+func (this *StyleType) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var text string
+	unmarshal(&text)
+	if text == "json" {
+		*this = Json
+	} else if text == "xml" {
+		*this = Xml
+	} else if text == "url-form" {
+		*this = UrlForm
+	} else {
+		*this = 0
+		return fmt.Errorf("value is wrong! [ %s ]", text)
+	}
+	return nil
+}
+
+func (this StyleType) MarshalYAML() (interface{}, error) {
+	if this == Json {
+		return "json", nil
+	} else if this == Xml {
+		return "xml", nil
+	} else if this == UrlForm {
+		return "url-form", nil
+	}
+	return nil, fmt.Errorf("not surport %v", this)
+}
 
 func ParseHttpStyleType(styleName string) StyleType {
 	styleName = strings.ToUpper(styleName)
