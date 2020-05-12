@@ -12,10 +12,10 @@ const _maxsize = 10000 //默认分页中最大条数
 
 //基础数据操作对象
 type BaseDao struct {
-	ds *DataSource
+	ds *DataSource `Inject`
 }
 
-func (this *BaseDao) Init(c *DataSource) {
+func (this *BaseDao) SetDs(c *DataSource) {
 	this.ds = c
 }
 
