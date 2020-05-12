@@ -91,6 +91,10 @@ type staticControl struct {
 }
 
 func (this *staticControl) Getstaticfile(url string, writer io.Writer) (string, error) {
+	index := strings.Index(url, "?")
+	if index > 0 {
+		url = url[0:index]
+	}
 	filename := this.root + url
 	if files.IsFileExist(filename) {
 		fixIndex := strings.LastIndex(filename, ".")
