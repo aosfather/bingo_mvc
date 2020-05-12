@@ -29,6 +29,7 @@ import (
 const (
 	_TAG_FIELD   = "Field"
 	_Tag_table   = "Table"
+	_Tag_Option  = "Option"
 	table_prefix = "t_"
 )
 
@@ -178,7 +179,7 @@ func (this *SqlTemplate) CreateDeleteSql(target interface{}, col ...string) (str
 			continue
 		}
 
-		tagTable := f.Tag.Get("Table")
+		tagTable := f.Tag.Get(_Tag_table)
 		if tagTable != "" {
 			tagTableName = tagTable
 		}
@@ -211,13 +212,13 @@ func (this *SqlTemplate) CreateInserSql(target interface{}) (string, []interface
 		if !vf.CanInterface() {
 			continue
 		}
-		tagTable := f.Tag.Get("Table")
+		tagTable := f.Tag.Get(_Tag_table)
 		if tagTable != "" {
 			tagTableName = tagTable
 		}
 
 		//对于自增长和明确忽略的字段不做转换
-		tagOption := f.Tag.Get("Option")
+		tagOption := f.Tag.Get(_Tag_Option)
 		if tagOption != "" {
 			if strings.Index(tagOption, "auto") != -1 || strings.Index(tagOption, "not") != -1 {
 				continue
@@ -262,7 +263,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 		}
 
 		//获取指明的table名称
-		tagTable := f.Tag.Get("Table")
+		tagTable := f.Tag.Get(_Tag_table)
 		if tagTable != "" {
 			tagTableName = tagTable
 		}
@@ -340,7 +341,7 @@ func (this *SqlTemplate) addFieldAndWhere(f reflect.StructField, v reflect.Value
 	*args = append(*args, v.Interface())
 
 	//对于自增长和明确忽略的字段不做转换
-	tagOption := f.Tag.Get("Option")
+	tagOption := f.Tag.Get(_Tag_Option)
 	if tagOption != "" {
 		if strings.Index(tagOption, "pk") != -1 {
 			//where的处理
@@ -363,7 +364,7 @@ func (this *SqlTemplate) getDefaultTableName(t reflect.Type) string {
 //字段是否忽略
 func (this *SqlTemplate) isFieldIgnore(field reflect.StructField) bool {
 	//对于自增长和明确忽略的字段不做转换
-	tagOption := field.Tag.Get("Option")
+	tagOption := field.Tag.Get(_Tag_Option)
 	if tagOption != "" {
 		if strings.Index(tagOption, "auto") != -1 || strings.Index(tagOption, "not") != -1 {
 			return true
