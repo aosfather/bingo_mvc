@@ -47,10 +47,15 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 	//获取requestmapper定义
 	requestMapper := this.MatchUrl(url)
 	if requestMapper == nil {
-		writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
-		writer.Write([]byte("<b>the url not found!</b>"))
-		writer.WriteHeader(404)
-		log.Printf("the url %s not found\n", url)
+		meta, err := this.ProcessStaticUrl(url, writer)
+		if err != nil {
+			writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
+			writer.Write([]byte("<b>the url not found!</b>"))
+			writer.WriteHeader(404)
+			log.Printf("the url %s not found\n", url)
+		} else {
+			writer.Header().Set(bingo_mvc.CONTENT_TYPE, meta)
+		}
 	} else {
 		if requestMapper.IsSupportMethod(bingo_mvc.ParseHttpMethodType(request.Method)) {
 			this.call(requestMapper, request, writer)

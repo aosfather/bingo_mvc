@@ -3,6 +3,7 @@ package bingo_mvc
 import (
 	"fmt"
 	"io"
+	"log"
 )
 
 type Interceptor interface {
@@ -16,8 +17,20 @@ type AbstractDispatcher struct {
 	dispatchManager *DispatchManager
 	interceptors    []Interceptor
 	templateManager *TemplateEngine
+	static          *staticControl
 }
 
+func (this *AbstractDispatcher) ConfigStatic(root string) {
+	if root != "" {
+		this.static = &staticControl{root}
+	}
+}
+func (this *AbstractDispatcher) ConfigTemplate(root string, suffix string) {
+	this.templateManager = &TemplateEngine{}
+	this.templateManager.RootPath = root
+	this.templateManager.Suffix = suffix
+	this.templateManager.Init()
+}
 func (this *AbstractDispatcher) SetDispatchManager(d *DispatchManager) {
 	this.dispatchManager = d
 }
@@ -32,6 +45,7 @@ func (this *AbstractDispatcher) AddRequestMapper(r *RequestMapper) {
 		this.dispatchManager.Init()
 	}
 
+	log.Println(r.ResponseStyle)
 	//使用模板来默认处理html格式
 	if r.ResponseStyle == UrlForm {
 		r.Response = this.convertToHtmlByTemplate
@@ -49,6 +63,9 @@ func (this *AbstractDispatcher) AddController(domain string, name string, url st
 		this.dispatchManager.Init()
 	}
 	this.dispatchManager.AddApi(domain, name, url, control)
+}
+func (this *AbstractDispatcher) ProcessStaticUrl(url string, writer io.Writer) (string, error) {
+	return this.static.Getstaticfile(url, writer)
 }
 
 func (this *AbstractDispatcher) MatchUrl(u string) Controller {
@@ -115,12 +132,11 @@ func (this *AbstractDispatcher) AddRequestMapperByHandleFunction(name string, ur
 /**
   通过mapper 的struct tag标签加入映射
 */
-func (this *AbstractDispatcher) AddRequestMapperBystruct(target interface{}, parameters ...interface{}) {
+func (this *AbstractDispatcher) AddRequestMapperBystruct(target interface{}) {
 	mappers := buildRequestMapperByStructTag(target)
 
 	if mappers != nil && len(mappers) > 0 {
-		for index, mapper := range mappers {
-			mapper.Request = parameters[index]
+		for _, mapper := range mappers {
 			this.AddRequestMapper(mapper)
 		}
 	}
@@ -129,7 +145,7 @@ func (this *AbstractDispatcher) AddRequestMapperBystruct(target interface{}, par
 
 //使用模板引擎进行转换
 func (this *AbstractDispatcher) convertToHtmlByTemplate(writer io.Writer, obj interface{}) error {
-	view, ok := obj.(*ModelView)
+	view, ok := obj.(ModelView)
 	if ok {
 		name := view.View
 		if this.templateManager != nil && name != "" {

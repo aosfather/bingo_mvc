@@ -36,10 +36,16 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 	//获取requestmapper定义
 	request := this.MatchUrl(url)
 	if request == nil {
-		ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
-		ctx.Response.SetBodyString("<b>the url not found!</b>")
-		ctx.Response.SetStatusCode(404)
-		log.Printf("the url %s not found\n", url)
+		meta, err := this.ProcessStaticUrl(url, ctx.Response.BodyWriter())
+		if err != nil {
+			ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
+			ctx.Response.SetBodyString("<b>the url not found!</b>")
+			ctx.Response.SetStatusCode(404)
+			log.Printf("the url %s not found\n", url)
+		} else {
+			ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, meta)
+		}
+
 	} else {
 		if request.IsSupportMethod(bingo_mvc.ParseHttpMethodType(string(ctx.Method()))) {
 			this.call(request, ctx)

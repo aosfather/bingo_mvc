@@ -1,6 +1,9 @@
 package bingo_mvc
 
-import . "strings"
+import (
+	"log"
+	. "strings"
+)
 
 /**
   请求分发管理
@@ -77,6 +80,7 @@ func (this *DispatchManager) AddApi(domain string, name, url string, handle Hand
 func (this *DispatchManager) AddRequestMapper(domain string, r *RequestMapper) {
 	if r != nil {
 		for _, url := range r.Url {
+			log.Println(url)
 			this.AddApi(domain, r.Name, url, r)
 		}
 	}
