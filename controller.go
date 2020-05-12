@@ -74,6 +74,17 @@ type Controller interface {
 	IsSupportMethod(m HttpMethodType) bool
 }
 
+//handle的map，用户获取handle列表
+func NewHandleMap() HandleMap {
+	return make(HandleMap)
+}
+
+type HandleMap map[string]CMap
+
+func (this HandleMap) Add(name string, handle HandleFunction, p interface{}) {
+	this[name] = CMap{Handle: handle, Parameter: p}
+}
+
 //controller的mapp
 type CMap struct {
 	Handle    HandleFunction
@@ -82,7 +93,7 @@ type CMap struct {
 
 //多个handle的控制器
 type MutiController interface {
-	GetHandles() map[string]CMap
+	GetHandles() HandleMap
 }
 
 //静态资源处理

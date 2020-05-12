@@ -116,6 +116,8 @@ func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{
 	var inputmap map[string]interface{}
 	if t.Kind() == reflect.Map {
 		inputmap = input.(map[string]interface{})
+	} else {
+		inputmap = make(map[string]interface{})
 	}
 	args.VisitAll(func(key, value []byte) {
 		inputmap[string(key)] = string(value)
