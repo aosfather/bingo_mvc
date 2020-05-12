@@ -1,4 +1,4 @@
-package bingo_mvc
+package session
 
 import (
 	"crypto/rand"

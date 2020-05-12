@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/aosfather/bingo_mvc"
-	utils "github.com/aosfather/bingo_utils"
+	"github.com/aosfather/bingo_utils/reflect"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -123,13 +123,13 @@ func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request
 }
 
 func (this *HttpDispatcher) fillByForm(form url.Values, input interface{}) {
-	if utils.IsMap(input) {
+	if reflect.IsMap(input) {
 		if sr, ok := input.(map[string]interface{}); ok {
 			for key, _ := range form {
 				sr[key] = form.Get(key)
 			}
 		}
 	} else {
-		utils.FillStructByForm(form, input)
+		reflect.FillStructByForm(form, input)
 	}
 }

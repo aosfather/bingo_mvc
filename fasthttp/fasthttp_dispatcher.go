@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/aosfather/bingo_mvc"
-	utils "github.com/aosfather/bingo_utils"
+	reflect2 "github.com/aosfather/bingo_utils/reflect"
 	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"log"
@@ -106,7 +106,7 @@ func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{
 	if args == nil || input == nil {
 		return
 	}
-	t := utils.GetRealType(input)
+	t := reflect2.GetRealType(input)
 	var inputmap map[string]interface{}
 	if t.Kind() == reflect.Map {
 		inputmap = input.(map[string]interface{})
@@ -116,7 +116,7 @@ func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{
 	})
 	//如果传入的不是map类型则填充值到struct上
 	if &inputmap != input {
-		utils.FillStruct(inputmap, input)
+		reflect2.FillStruct(inputmap, input)
 	}
 }
 func (this *FastHTTPDispatcher) Run() {

@@ -32,6 +32,7 @@ Hibernate Validator 附加的 constraint
 import (
 	"fmt"
 	utils "github.com/aosfather/bingo_utils"
+	reflect2 "github.com/aosfather/bingo_utils/reflect"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -83,11 +84,11 @@ func (this *ValidateManager) getValidater(key string) Validater {
 }
 
 func (this *ValidateManager) Validate(obj interface{}) []BingoError {
-	if utils.IsMap(obj) {
+	if reflect2.IsMap(obj) {
 		//TODO 需要看怎么做校验了
 		return nil
 	}
-	objT, objV, err := utils.GetStructTypeValue(obj)
+	objT, objV, err := reflect2.GetStructTypeValue(obj)
 	if err != nil {
 		return []BingoError{utils.CreateError(501, err.Error())}
 	}

@@ -1,7 +1,7 @@
 package bingo_mvc
 
 import (
-	utils "github.com/aosfather/bingo_utils"
+	"github.com/aosfather/bingo_utils/files"
 	"html/template"
 	"io"
 )
@@ -34,7 +34,7 @@ func (this *TemplateEngine) Render(w io.Writer, templateName string, data interf
 	if t == nil {
 		templateFile := this.getRealPath(templateName)
 		var err error
-		if utils.IsFileExist(templateFile) {
+		if files.IsFileExist(templateFile) {
 			t, err = template.New(templateName).ParseFiles(templateFile)
 			if err != nil {
 				templateError = CreateError(500, "template load error:"+err.Error())

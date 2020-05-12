@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	utils "github.com/aosfather/bingo_utils"
+	"github.com/aosfather/bingo_utils/files"
+	reflect2 "github.com/aosfather/bingo_utils/reflect"
 	"io"
 	"mime"
 	"os"
@@ -91,7 +92,7 @@ type staticControl struct {
 
 func (this *staticControl) Getstaticfile(url string, writer io.Writer) (string, error) {
 	filename := this.root + url
-	if utils.IsFileExist(filename) {
+	if files.IsFileExist(filename) {
 		fixIndex := strings.LastIndex(filename, ".")
 		fileSufix := string([]byte(filename)[fixIndex:])
 		media := getMedia(fileSufix)
@@ -136,7 +137,7 @@ func buildRequestMapperByStructTag(obj interface{}) []*RequestMapper {
 		return nil
 	}
 	handleMap := mc.GetHandles()
-	objT, objV, err := utils.GetStructTypeValue(obj)
+	objT, objV, err := reflect2.GetStructTypeValue(obj)
 	if err != nil {
 		return nil
 	}

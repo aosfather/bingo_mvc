@@ -2,7 +2,6 @@ package bingo_mvc
 
 import (
 	"fmt"
-	utils "github.com/aosfather/bingo_utils"
 	"io"
 )
 
@@ -14,7 +13,6 @@ type Interceptor interface {
 
 type AbstractDispatcher struct {
 	Port            int
-	Logger          utils.Log
 	dispatchManager *DispatchManager
 	interceptors    []Interceptor
 	templateManager *TemplateEngine
