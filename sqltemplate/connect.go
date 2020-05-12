@@ -1,4 +1,4 @@
-package bingo_dao
+package sqltemplate
 
 import (
 	"database/sql"

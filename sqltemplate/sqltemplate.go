@@ -16,7 +16,7 @@ SQL生成模板
 	可选值：auto、pk、not 分别表示 自动增长、主健、忽略
 
 */
-package bingo_dao
+package sqltemplate
 
 import (
 	"fmt"
@@ -28,6 +28,7 @@ import (
 
 const (
 	_TAG_FIELD   = "Field"
+	_Tag_table   = "Table"
 	table_prefix = "t_"
 )
 
@@ -138,7 +139,7 @@ func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (stri
 			continue
 		}
 
-		tagTable := f.Tag.Get("Table")
+		tagTable := f.Tag.Get(_Tag_table)
 		if tagTable != "" {
 			tagTableName = tagTable
 		}

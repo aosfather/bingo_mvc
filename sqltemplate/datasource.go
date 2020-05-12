@@ -1,23 +1,13 @@
-package bingo_dao
+package sqltemplate
 
 import (
 	"database/sql"
-	log2 "github.com/aosfather/bingo_utils/log"
+
 	"log"
 )
 
-var logger log2.Log
-
-func SetLogger(l log2.Log) {
-	logger = l
-}
-
 func debug(msg string, obj ...interface{}) {
-	if logger != nil {
-		logger.Debug(msg, obj...)
-	} else {
-		log.Printf(msg, obj...)
-	}
+	log.Printf(msg, obj...)
 }
 
 /**
