@@ -52,3 +52,7 @@ func (this *DataSource) GetConnection() *Connection {
 	conn.template = this.sqlTemplate
 	return &conn
 }
+
+func (this *DataSource) GetDao() *BaseDao {
+	return &BaseDao{this}
+}
