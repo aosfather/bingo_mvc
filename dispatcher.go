@@ -20,6 +20,9 @@ type AbstractDispatcher struct {
 	static          *staticControl
 }
 
+func (this *AbstractDispatcher) ConfigPort(p int) {
+	this.Port = p
+}
 func (this *AbstractDispatcher) ConfigStatic(root string) {
 	if root != "" {
 		this.static = &staticControl{root}
@@ -65,7 +68,11 @@ func (this *AbstractDispatcher) AddController(domain string, name string, url st
 	this.dispatchManager.AddApi(domain, name, url, control)
 }
 func (this *AbstractDispatcher) ProcessStaticUrl(url string, writer io.Writer) (string, error) {
-	return this.static.Getstaticfile(url, writer)
+	if this.static != nil {
+		return this.static.Getstaticfile(url, writer)
+	}
+	return "", nil
+
 }
 
 func (this *AbstractDispatcher) MatchUrl(u string) Controller {
