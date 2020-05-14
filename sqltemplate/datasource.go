@@ -2,6 +2,8 @@ package sqltemplate
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"log"
 )
@@ -32,8 +34,12 @@ func (this *DataSource) Init() {
 		return
 	}
 
-	if this.DBtype != "" {
-		url := this.DBuser + ":" + this.DBpassword + "@" + this.DBurl + "/" + this.DBname
+	if strings.ToLower(this.DBtype) == "mysql" {
+		dburl := this.DBurl
+		if strings.Index(dburl, "(") <= 0 {
+			dburl = fmt.Sprintf("tcp(%s)", dburl)
+		}
+		url := this.DBuser + ":" + this.DBpassword + "@" + dburl + "/" + this.DBname
 		var err error
 		this.pool, err = sql.Open(this.DBtype, url)
 		if err == nil {
