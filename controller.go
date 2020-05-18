@@ -40,8 +40,15 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 	if t.Kind() == reflect.Ptr { //指针类型获取真正type需要调用Elem
 		t = t.Elem()
 	}
+	var paramter interface{}
 	//获取请求参数
-	paramter := reflect.New(t).Interface()
+	if t.Kind() == reflect.Map {
+		paramter = reflect.MakeMap(t).Interface()
+
+	} else {
+		paramter = reflect.New(t).Interface()
+	}
+
 	err := input(paramter)
 	if err == nil {
 		//处理，并渲染
