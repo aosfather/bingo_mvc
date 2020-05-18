@@ -1,7 +1,9 @@
 package http
 
 import (
+	"fmt"
 	"github.com/aosfather/bingo_mvc"
+	"log"
 	"testing"
 )
 
@@ -13,19 +15,24 @@ type MyHandle struct {
 	Test1 string `mapper:"name(test1);url(/test1);method(GET);style(JSON)"`
 }
 
-func (this *MyHandle) GetHandles() map[string]bingo_mvc.CMap {
-	result := make(map[string]bingo_mvc.CMap)
-	result["test"] = bingo_mvc.CMap{this.DoTest, &MyRequest{}}
-	result["test1"] = bingo_mvc.CMap{this.DoTest1, &MyRequest{}}
+func (this *MyHandle) GetHandles() bingo_mvc.HandleMap {
+	result := bingo_mvc.NewHandleMap()
+	r := &MyRequest{}
+	result.Add("test", this.DoTest, r)
+	result.Add("test1", this.DoTest1, r)
 	return result
 }
 
 func (this *MyHandle) DoTest(a interface{}) interface{} {
+	t := a.(*MyRequest)
+	log.Println(t.Name)
 	return "hello"
 }
 
 func (this *MyHandle) DoTest1(a interface{}) interface{} {
-	return "hello1"
+	t := a.(*MyRequest)
+	log.Println(t.Name)
+	return fmt.Sprintf("hello %s", t.Name)
 }
 func TestHttpDispatcher_Run(t *testing.T) {
 	h := HttpDispatcher{}
@@ -35,7 +42,7 @@ func TestHttpDispatcher_Run(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	hd := HttpDispatcher{}
-	hd.AddRequestMapperBystruct(&MyHandle{"123", "456"}, &MyRequest{}, &MyRequest{})
+	hd.AddRequestMapperBystruct(&MyHandle{"123", "456"})
 	hd.Port = 8090
 	hd.Run()
 
