@@ -118,6 +118,15 @@ func (this *SqlTemplate) structValueToArray(target interface{}) ([]interface{}, 
 
 }
 
+func inArray(field string, cols []string) bool {
+	for _, v := range cols {
+		if field == v {
+			return true
+		}
+	}
+	return false
+}
+
 func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (string, []interface{}, error) {
 	objT, objV, err := reflect2.GetStructTypeValue(target)
 	if err != nil {
@@ -136,7 +145,7 @@ func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (stri
 
 		//处理内嵌结构
 		if f.Anonymous {
-			this.addEmberStruct(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere)
+			this.addEmberStruct(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 			continue
 		}
 
@@ -145,7 +154,7 @@ func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (stri
 			tagTableName = tagTable
 		}
 
-		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere)
+		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 
 	}
 
@@ -154,7 +163,7 @@ func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (stri
 		tagTableName = this.getDefaultTableName(objT)
 	}
 
-	return "select " + strings.Join(sqlFields, ",") + " from " + tagTableName + " where " + strings.Join(sqlwheres, ","), argsWhere, nil
+	return "select " + strings.Join(sqlFields, ",") + " from " + tagTableName + " where " + strings.Join(sqlwheres, " and "), argsWhere, nil
 }
 
 func (this *SqlTemplate) CreateDeleteSql(target interface{}, col ...string) (string, []interface{}, error) {
@@ -175,7 +184,7 @@ func (this *SqlTemplate) CreateDeleteSql(target interface{}, col ...string) (str
 
 		//处理内嵌结构
 		if f.Anonymous {
-			this.addEmberStruct(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere)
+			this.addEmberStruct(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 			continue
 		}
 
@@ -184,7 +193,7 @@ func (this *SqlTemplate) CreateDeleteSql(target interface{}, col ...string) (str
 			tagTableName = tagTable
 		}
 
-		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere)
+		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 
 	}
 
@@ -258,7 +267,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 
 		//处理内嵌结构
 		if f.Anonymous {
-			this.addEmberStruct(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere)
+			this.addEmberStruct(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 			continue
 		}
 
@@ -268,7 +277,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 			tagTableName = tagTable
 		}
 
-		this.addFieldAndWhere(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere)
+		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 
 	}
 
@@ -282,7 +291,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 
 }
 
-func (this *SqlTemplate) addEmberStruct(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}) {
+func (this *SqlTemplate) addEmberStruct(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}, cols []string) {
 	if f.Anonymous {
 		ft := f.Type
 		for i := 0; i < ft.NumField(); i++ {
@@ -293,11 +302,11 @@ func (this *SqlTemplate) addEmberStruct(f reflect.StructField, v reflect.Value, 
 			}
 			//处理内嵌结构
 			if ff.Anonymous {
-				this.addEmberStruct(ff, vf, fieldfix, fields, wheres, args, argsWhere)
+				this.addEmberStruct(ff, vf, fieldfix, fields, wheres, args, argsWhere, cols)
 				continue
 			}
 
-			this.addFieldAndWhere(ff, vf, fieldfix, fields, wheres, args, argsWhere)
+			this.addFieldAndWhere(ff, vf, fieldfix, fields, wheres, args, argsWhere, cols)
 		}
 	}
 }
@@ -334,12 +343,21 @@ func (this *SqlTemplate) addField(f reflect.StructField, v reflect.Value, fields
 	*values = append(*values, "?")
 }
 
-func (this *SqlTemplate) addFieldAndWhere(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}) {
+func (this *SqlTemplate) addFieldAndWhere(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}, cols []string) {
 	colName := reflect2.GetColName(f)
 	//
 	*fields = append(*fields, colName+fieldfix)
 	*args = append(*args, v.Interface())
 
+	if cols != nil && len(cols) > 0 {
+		//指明字段的处理
+		if inArray(f.Name, cols) {
+			*wheres = append(*wheres, colName+" =?")
+			*argsWhere = append(*argsWhere, v.Interface())
+		}
+		return
+	}
+	//未指明字段的使用主键进行填充
 	//对于自增长和明确忽略的字段不做转换
 	tagOption := f.Tag.Get(_Tag_Option)
 	if tagOption != "" {

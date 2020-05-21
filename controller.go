@@ -81,6 +81,13 @@ type Controller interface {
 	IsSupportMethod(m HttpMethodType) bool
 }
 
+//标准的map 类型
+var _mapType map[string]interface{} = make(map[string]interface{})
+
+func TypeOfMap() interface{} {
+	return _mapType
+}
+
 //handle的map，用户获取handle列表
 func NewHandleMap() HandleMap {
 	return make(HandleMap)
