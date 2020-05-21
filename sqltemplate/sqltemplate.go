@@ -246,6 +246,11 @@ func (this *SqlTemplate) CreateInserSql(target interface{}) (string, []interface
 	return "Insert into " + tagTableName + "(" + strings.Join(sqlFields, ",") + ") Values(" + strings.Join(sqlValues, ",") + ")", args, nil
 }
 
+/**
+  update 指定的是更新字段
+  条件按主键，所以一定需要定义主键字段
+  对于批量更新会做新的方法来完成
+*/
 func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (string, []interface{}, error) {
 	objT, objV, err := reflect2.GetStructTypeValue(target)
 	if err != nil {
@@ -267,7 +272,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 
 		//处理内嵌结构
 		if f.Anonymous {
-			this.addEmberStruct(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere, col)
+			this.addUpdateEmberStruct(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 			continue
 		}
 
@@ -277,7 +282,7 @@ func (this *SqlTemplate) CreateUpdateSql(target interface{}, col ...string) (str
 			tagTableName = tagTable
 		}
 
-		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
+		this.addUpdateFieldAndWhere(f, vf, "=?", &sqlFields, &sqlwheres, &args, &argsWhere, col)
 
 	}
 
@@ -341,6 +346,52 @@ func (this *SqlTemplate) addField(f reflect.StructField, v reflect.Value, fields
 	*args = append(*args, v.Interface())
 	*fields = append(*fields, colName)
 	*values = append(*values, "?")
+}
+
+func (this *SqlTemplate) addUpdateEmberStruct(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}, cols []string) {
+	if f.Anonymous {
+		ft := f.Type
+		for i := 0; i < ft.NumField(); i++ {
+			ff := ft.Field(i)
+			vf := v.Field(i)
+			if !vf.CanInterface() {
+				continue
+			}
+			//处理内嵌结构
+			if ff.Anonymous {
+				this.addUpdateEmberStruct(ff, vf, fieldfix, fields, wheres, args, argsWhere, cols)
+				continue
+			}
+
+			this.addUpdateFieldAndWhere(ff, vf, fieldfix, fields, wheres, args, argsWhere, cols)
+		}
+	}
+}
+
+func (this *SqlTemplate) addUpdateFieldAndWhere(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}, cols []string) {
+	colName := reflect2.GetColName(f)
+	if cols != nil && len(cols) > 0 {
+		//指明字段的处理
+		if inArray(f.Name, cols) {
+			*fields = append(*fields, colName+fieldfix)
+			*args = append(*args, v.Interface())
+		}
+	} else {
+		*fields = append(*fields, colName+fieldfix)
+		*args = append(*args, v.Interface())
+	}
+
+	//未指明字段的使用主键进行填充
+	//对于自增长和明确忽略的字段不做转换
+	tagOption := f.Tag.Get(_Tag_Option)
+	if tagOption != "" {
+		if strings.Index(tagOption, "pk") != -1 {
+			//where的处理
+			*wheres = append(*wheres, colName+" =?")
+			*argsWhere = append(*argsWhere, v.Interface())
+		}
+	}
+
 }
 
 func (this *SqlTemplate) addFieldAndWhere(f reflect.StructField, v reflect.Value, fieldfix string, fields, wheres *[]string, args, argsWhere *[]interface{}, cols []string) {
