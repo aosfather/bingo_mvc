@@ -1,6 +1,7 @@
 package http
 
 import (
+	. "bytes"
 	"encoding/json"
 	"encoding/xml"
 	"github.com/aosfather/bingo_mvc"
@@ -38,16 +39,20 @@ func (this *HttpDispatcher) shutdown() {
 
 func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	url := request.RequestURI
+	//设置服务器名称
+	writer.Header().Set("Server", "bingo mvc")
 	if url == "/favicon.ico" {
 		ico, _ := ioutil.ReadFile("favicon.ico")
-		writer.Write(ico)
 		writer.Header().Set(bingo_mvc.CONTENT_TYPE, "image/x-icon")
+		writer.WriteHeader(200)
+		writer.Write(ico)
 		return
 	}
 	//获取requestmapper定义
 	requestMapper := this.MatchUrl(url)
 	if requestMapper == nil {
-		meta, err := this.ProcessStaticUrl(url, writer)
+		buffer := new(Buffer)
+		meta, err := this.ProcessStaticUrl(url, buffer)
 		if err != nil {
 			writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
 			writer.Write([]byte("<b>the url not found!</b>"))
@@ -55,6 +60,8 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 			log.Printf("the url %s not found\n", url)
 		} else {
 			writer.Header().Set(bingo_mvc.CONTENT_TYPE, meta)
+			writer.Write(buffer.Bytes())
+
 		}
 	} else {
 		if requestMapper.IsSupportMethod(bingo_mvc.ParseHttpMethodType(request.Method)) {
@@ -66,8 +73,6 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 			writer.WriteHeader(405)
 		}
 	}
-	//设置服务器名称
-	writer.Header().Set("Server", "bingo mvc")
 
 }
 
@@ -113,17 +118,13 @@ func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request
 			if request.Form == nil {
 				request.ParseForm()
 			}
-			this.fillByForm(request.PostForm, input)
+			this.fillByForm(request.Form, input)
 
 		}
 		return nil
 	}
-	//获取header头的信息
-	headerFunc := func(key string) interface{} {
-		return request.Header.Get(key)
-	}
 
-	st := this.ExecuteRequest(api, writer, headerFunc, inputfunc)
+	st := this.ExecuteRequest(api, writer, &HttpContextImp{request, writer}, inputfunc)
 	writer.Header().Set(bingo_mvc.CONTENT_TYPE, st.GetContentType())
 }
 

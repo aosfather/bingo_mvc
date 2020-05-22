@@ -6,10 +6,22 @@ import (
 	"log"
 )
 
+//协议头接口
+type HttpHeaderFace interface {
+	RequestHeaderRead(key string) string
+	ResponseHeaderwrite(key string, v string) error
+}
+
+type HttpContext interface {
+	HttpHeaderFace
+	CookieFace
+}
+
 type Interceptor interface {
-	PreHandle(writer io.Writer, request func(key string) interface{}) bool
-	PostHandle(writer io.Writer, request func(key string) interface{}, mv *ModelView) BingoError
-	AfterCompletion(writer io.Writer, request func(key string) interface{}, err BingoError) BingoError
+	PreHandle(writer io.Writer, context HttpContext) bool
+	InputProcess(context HttpContext, input interface{}) error
+	PostHandle(writer io.Writer, context HttpContext, mv *ModelView) BingoError
+	AfterCompletion(writer io.Writer, context HttpContext, err BingoError) BingoError
 }
 
 type AbstractDispatcher struct {
@@ -18,11 +30,18 @@ type AbstractDispatcher struct {
 	interceptors    []Interceptor
 	templateManager *TemplateEngine
 	static          *staticControl
+	sessionManager  *SessionManager
 }
 
+func (this *AbstractDispatcher) AddInterceptor(ins ...Interceptor) {
+	if ins != nil && len(ins) > 0 {
+		this.interceptors = append(this.interceptors, ins...)
+	}
+}
 func (this *AbstractDispatcher) ConfigPort(p int) {
 	this.Port = p
 }
+
 func (this *AbstractDispatcher) ConfigStatic(root string) {
 	if root != "" {
 		this.static = &staticControl{root}
@@ -33,6 +52,9 @@ func (this *AbstractDispatcher) ConfigTemplate(root string, suffix string) {
 	this.templateManager.RootPath = root
 	this.templateManager.Suffix = suffix
 	this.templateManager.Init()
+}
+func (this *AbstractDispatcher) SetSessionManager(s *SessionManager) {
+	this.sessionManager = s
 }
 func (this *AbstractDispatcher) SetDispatchManager(d *DispatchManager) {
 	this.dispatchManager = d
@@ -83,35 +105,30 @@ func (this *AbstractDispatcher) MatchUrl(u string) Controller {
 }
 
 //执行请求
-func (this *AbstractDispatcher) ExecuteRequest(r Controller, writer io.Writer, request func(key string) interface{}, input func(interface{}) error) StyleType {
-	if !this.preHandle(writer, request) {
+func (this *AbstractDispatcher) ExecuteRequest(r Controller, writer io.Writer, context HttpContext, input func(interface{}) error) StyleType {
+	if !this.preHandle(writer, context) {
 		return UrlForm
 	}
+	process := func(in interface{}) error {
+		err := input(in)
+		if err != nil {
+			return err
+		}
+		return this.inputProcess(context, in)
+	}
 
-	//执行handler处理
-	st := r.Select(writer, input)
-	err := this.postHandle(writer, request, nil)
+	st := r.Select(writer, process)
+	err := this.postHandle(writer, context, nil)
 
 	//请求处理完后拦截器进行处理
-	this.afterCompletion(writer, request, err)
+	this.afterCompletion(writer, context, err)
 	return st
 
 }
-
-func (this *AbstractDispatcher) preHandle(writer io.Writer, request func(key string) interface{}) bool {
+func (this *AbstractDispatcher) inputProcess(context HttpContext, input interface{}) error {
 	if this.interceptors != nil && len(this.interceptors) > 0 {
 		for _, h := range this.interceptors {
-			if !h.PreHandle(writer, request) {
-				return false
-			}
-		}
-	}
-	return true
-}
-func (this *AbstractDispatcher) postHandle(writer io.Writer, request func(key string) interface{}, mv *ModelView) BingoError {
-	if this.interceptors != nil && len(this.interceptors) > 0 {
-		for _, h := range this.interceptors {
-			err := h.PostHandle(writer, request, mv)
+			err := h.InputProcess(context, input)
 			if err != nil {
 				return err
 			}
@@ -119,10 +136,32 @@ func (this *AbstractDispatcher) postHandle(writer io.Writer, request func(key st
 	}
 	return nil
 }
-func (this *AbstractDispatcher) afterCompletion(writer io.Writer, request func(key string) interface{}, err BingoError) BingoError {
+
+func (this *AbstractDispatcher) preHandle(writer io.Writer, context HttpContext) bool {
 	if this.interceptors != nil && len(this.interceptors) > 0 {
 		for _, h := range this.interceptors {
-			e := h.AfterCompletion(writer, request, err)
+			if !h.PreHandle(writer, context) {
+				return false
+			}
+		}
+	}
+	return true
+}
+func (this *AbstractDispatcher) postHandle(writer io.Writer, context HttpContext, mv *ModelView) BingoError {
+	if this.interceptors != nil && len(this.interceptors) > 0 {
+		for _, h := range this.interceptors {
+			err := h.PostHandle(writer, context, mv)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+func (this *AbstractDispatcher) afterCompletion(writer io.Writer, context HttpContext, err BingoError) BingoError {
+	if this.interceptors != nil && len(this.interceptors) > 0 {
+		for _, h := range this.interceptors {
+			e := h.AfterCompletion(writer, context, err)
 			if e != nil {
 				return e
 			}

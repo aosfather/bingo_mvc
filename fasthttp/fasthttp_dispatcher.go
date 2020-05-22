@@ -99,12 +99,8 @@ func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.Req
 		}
 		return nil
 	}
-	//获取header头的信息
-	headerFunc := func(key string) interface{} {
-		return string(ctx.Request.Header.Peek(key))
-	}
 
-	st := this.ExecuteRequest(api, ctx.Response.BodyWriter(), headerFunc, inputfunc)
+	st := this.ExecuteRequest(api, ctx.Response.BodyWriter(), &HttpContextImp{ctx}, inputfunc)
 	ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, st.GetContentType())
 }
 

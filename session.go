@@ -1,9 +1,8 @@
-package session
+package bingo_mvc
 
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"github.com/go-redis/redis"
 	"io"
 	"strconv"
 	"sync"
@@ -21,8 +20,11 @@ const (
 	CK_HttpOnly CookieKey = 5
 )
 
-type CookieReader func(key string) map[CookieKey]interface{}
-type CookieWriter func(key string, value map[CookieKey]interface{}) error
+//cookie接口
+type CookieFace interface {
+	CookieRead(key string) map[CookieKey]interface{}
+	CookieWrite(key string, value map[CookieKey]interface{}) error
+}
 
 type SessionStore interface {
 	Exist(id string) bool
@@ -104,7 +106,7 @@ func (this *HttpSession) GetValue(key string, value interface{}) {
 	this.mStrore.GetValue(this.mSessionID, key, value)
 }
 
-type sessionManager struct {
+type SessionManager struct {
 	cookieName   string                  //客户端cookie名称
 	lock         sync.RWMutex            //互斥(保证线程安全)
 	store        SessionStore            //session存储对象
@@ -113,7 +115,7 @@ type sessionManager struct {
 	sessions     map[string]*HttpSession //保存session的指针[sessionID] = session
 }
 
-func (this *sessionManager) Init() {
+func (this *SessionManager) Init() {
 	//初始化
 	this.sessions = make(map[string]*HttpSession)
 
@@ -127,9 +129,9 @@ func (this *sessionManager) Init() {
 	go this.gc()
 }
 
-func (this *sessionManager) getSession(w CookieWriter, r CookieReader) *HttpSession {
+func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
 
-	var cookie = r(this.cookieName)
+	var cookie = face.CookieRead(this.cookieName)
 
 	if cookie != nil && len(cookie) > 0 {
 
@@ -148,11 +150,11 @@ func (this *sessionManager) getSession(w CookieWriter, r CookieReader) *HttpSess
 		}
 
 	}
-	return this.create(w)
+	return this.Create(face)
 
 }
 
-func (this *sessionManager) create(w CookieWriter) *HttpSession {
+func (this *SessionManager) Create(face CookieFace) *HttpSession {
 	newSessionID := newSessionID()
 	session := &HttpSession{mSessionID: newSessionID, lastTimeAccessed: time.Now(), mNew: true, mStrore: this.store}
 	this.sessions[newSessionID] = session
@@ -163,11 +165,11 @@ func (this *sessionManager) create(w CookieWriter) *HttpSession {
 	cookie[CK_Path] = "/"
 	cookie[CK_HttpOnly] = true
 	cookie[CK_MaxAge] = int(this.mMaxLifeTime)
-	w(this.cookieName, cookie)
+	face.CookieWrite(this.cookieName, cookie)
 	return session
 }
 
-func (this *sessionManager) deleteSession(id string) {
+func (this *SessionManager) DeleteSession(id string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -176,7 +178,7 @@ func (this *sessionManager) deleteSession(id string) {
 
 }
 
-func (this *sessionManager) gc() {
+func (this *SessionManager) gc() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -199,10 +201,4 @@ func newSessionID() string {
 		return strconv.FormatInt(nano, 10)
 	}
 	return base64.URLEncoding.EncodeToString(b)
-}
-
-// redis session store
-type RedisSessionStore struct {
-	client *redis.Client
-	prefix string
 }
