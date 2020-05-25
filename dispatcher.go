@@ -9,6 +9,7 @@ import (
 //协议头接口
 type HttpHeaderFace interface {
 	RequestHeaderRead(key string) string
+	GetRequestURI() string
 	ResponseHeaderwrite(key string, v string) error
 }
 

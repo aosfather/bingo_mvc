@@ -86,6 +86,9 @@ func (this *HttpSession) IsNew() bool {
 	return this.mNew
 }
 
+func (this *HttpSession) ID() string {
+	return this.mSessionID
+}
 func (this *HttpSession) Touch() {
 	this.mStrore.Touch(this.mSessionID)
 
@@ -107,7 +110,7 @@ func (this *HttpSession) GetValue(key string, value interface{}) {
 }
 
 type SessionManager struct {
-	cookieName   string                  //客户端cookie名称
+	CookieName   string                  //客户端cookie名称
 	lock         sync.RWMutex            //互斥(保证线程安全)
 	store        SessionStore            //session存储对象
 	maxCacheTime int64                   //垃圾回收时间
@@ -126,19 +129,27 @@ func (this *SessionManager) Init() {
 		this.store = &m
 	}
 	//启动定期清理
-	go this.gc()
+	//go this.gc()
 }
 
 func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
 
-	var cookie = face.CookieRead(this.cookieName)
+	var cookie = face.CookieRead(this.CookieName)
 
 	if cookie != nil && len(cookie) > 0 {
 
 		this.lock.Lock()
 		defer this.lock.Unlock()
 
-		sessionID := cookie[CK_Value].(string)
+		v := cookie[CK_Value]
+		var sessionID = ""
+		if v != nil {
+			if _, ok := v.([]byte); ok {
+				sessionID = string(cookie[CK_Value].([]byte))
+			}
+
+		}
+
 		if session, ok := this.sessions[sessionID]; ok {
 			session.lastTimeAccessed = time.Now() //判断合法性的同时，更新最后的访问时间
 			return session
@@ -160,12 +171,12 @@ func (this *SessionManager) Create(face CookieFace) *HttpSession {
 	this.sessions[newSessionID] = session
 	//让浏览器cookie设置过期时间
 	cookie := make(map[CookieKey]interface{})
-	cookie[CK_Name] = this.cookieName
+	cookie[CK_Name] = this.CookieName
 	cookie[CK_Value] = newSessionID
 	cookie[CK_Path] = "/"
 	cookie[CK_HttpOnly] = true
 	cookie[CK_MaxAge] = int(this.mMaxLifeTime)
-	face.CookieWrite(this.cookieName, cookie)
+	face.CookieWrite(this.CookieName, cookie)
 	return session
 }
 

@@ -10,6 +10,9 @@ type HttpContextImp struct {
 	response http.ResponseWriter
 }
 
+func (this *HttpContextImp) GetRequestURI() string {
+	return this.request.RequestURI
+}
 func (this *HttpContextImp) RequestHeaderRead(key string) string {
 	return this.request.Header.Get(key)
 

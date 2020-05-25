@@ -1,6 +1,7 @@
 package fasthttp
 
 import (
+	"fmt"
 	"github.com/aosfather/bingo_mvc"
 	"github.com/valyala/fasthttp"
 )
@@ -9,6 +10,9 @@ type HttpContextImp struct {
 	ctx *fasthttp.RequestCtx
 }
 
+func (this *HttpContextImp) GetRequestURI() string {
+	return string(this.ctx.RequestURI())
+}
 func (this *HttpContextImp) RequestHeaderRead(key string) string {
 	return string(this.ctx.Request.Header.Peek(key))
 
@@ -21,7 +25,7 @@ func (this *HttpContextImp) ResponseHeaderwrite(key string, v string) error {
 func (this *HttpContextImp) CookieRead(key string) map[bingo_mvc.CookieKey]interface{} {
 	value := this.ctx.Request.Header.Cookie(key)
 	c := fasthttp.Cookie{}
-	c.ParseBytes(value)
+	c.ParseBytes([]byte(fmt.Sprintf("%s=%s", key, value)))
 	v := make(map[bingo_mvc.CookieKey]interface{})
 	v[bingo_mvc.CK_Name] = c.Key()
 	v[bingo_mvc.CK_Value] = c.Value()
