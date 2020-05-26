@@ -29,7 +29,7 @@ type CookieFace interface {
 type SessionStore interface {
 	Exist(id string) bool
 	Create(id string)
-	GetValue(id, key string, value interface{})
+	GetValue(id, key string) interface{}
 	SetValue(id, key string, value interface{})
 	Touch(id string)
 	Delete(id string)
@@ -52,13 +52,12 @@ func (this *memoryStore) Create(id string) {
 	s := make(map[string]interface{})
 	this.sessions[id] = s
 }
-func (this *memoryStore) GetValue(id, key string, value interface{}) {
+func (this *memoryStore) GetValue(id, key string) interface{} {
 	v := this.sessions[id]
 	if v != nil {
-		value = v[key]
-		return
+		return v[key]
 	}
-	value = nil
+	return nil
 }
 func (this *memoryStore) SetValue(id, key string, value interface{}) {
 	v := this.sessions[id]
@@ -91,6 +90,7 @@ func (this *HttpSession) ID() string {
 }
 func (this *HttpSession) Touch() {
 	this.mStrore.Touch(this.mSessionID)
+	this.mNew = false
 
 }
 
@@ -99,14 +99,15 @@ func (this *HttpSession) SetValue(key string, value interface{}) {
 		this.mLock.Lock()
 		defer this.mLock.Unlock()
 		this.mStrore.SetValue(this.mSessionID, key, value)
+		this.mNew = false
 	}
 }
 
-func (this *HttpSession) GetValue(key string, value interface{}) {
+func (this *HttpSession) GetValue(key string) interface{} {
 	this.mLock.RLock()
 	defer this.mLock.RUnlock()
 	//如果找不到，尝试者从store中获取，若也无法获取则返回nil
-	this.mStrore.GetValue(this.mSessionID, key, value)
+	return this.mStrore.GetValue(this.mSessionID, key)
 }
 
 type SessionManager struct {
@@ -130,6 +131,9 @@ func (this *SessionManager) Init() {
 	}
 	//启动定期清理
 	//go this.gc()
+}
+func (this *SessionManager) GetSessionById(id string) *HttpSession {
+	return this.sessions[id]
 }
 
 func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
@@ -169,6 +173,7 @@ func (this *SessionManager) Create(face CookieFace) *HttpSession {
 	newSessionID := newSessionID()
 	session := &HttpSession{mSessionID: newSessionID, lastTimeAccessed: time.Now(), mNew: true, mStrore: this.store}
 	this.sessions[newSessionID] = session
+	this.store.Create(newSessionID)
 	//让浏览器cookie设置过期时间
 	cookie := make(map[CookieKey]interface{})
 	cookie[CK_Name] = this.CookieName
