@@ -138,7 +138,10 @@ func (this *ApplicationContext) initByProcessFunctions() {
 
 //结束加载
 func (this *ApplicationContext) Finish() {
-	this.services.Inject()
+	fun := func(a interface{}) {
+		this.holder.ProcessValueTag(a)
+	}
+	this.services.Inject(fun)
 }
 
 //组装对象
