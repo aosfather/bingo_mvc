@@ -88,8 +88,9 @@ func (this *ApplicationContext) getvalue(m map[interface{}]interface{}, keys []s
 		if value, ok := v.(map[interface{}]interface{}); ok {
 			return this.getvalue(value, keys, index+1)
 		}
-
-		return fmt.Sprintf("%v", v)
+		if v != nil {
+			return fmt.Sprintf("%v", v)
+		}
 
 	}
 	return ""

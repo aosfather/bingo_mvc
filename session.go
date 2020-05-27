@@ -119,6 +119,9 @@ type SessionManager struct {
 	sessions     map[string]*HttpSession //保存session的指针[sessionID] = session
 }
 
+func (this *SessionManager) SetStore(store SessionStore) {
+	this.store = store
+}
 func (this *SessionManager) Init() {
 	//初始化
 	this.sessions = make(map[string]*HttpSession)
