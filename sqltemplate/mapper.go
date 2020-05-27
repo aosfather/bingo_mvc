@@ -155,8 +155,21 @@ func (this *MapperDao) execute(obj utils.Object, id string, mt methodType, e exe
 	session := this.current
 	if session == nil {
 		session = this.ds.GetConnection()
+		if mt == mt_delete || mt == mt_insert || mt == mt_update {
+			session.Begin()
+		}
 		defer session.Close()
 	}
+
+	//如果给的id为空则说明不走模板引擎
+	if id == "" {
+		if e != nil {
+			e(session, "")
+		}
+
+		return
+	}
+	//根据id查找模板
 	function := this.templates[id]
 	if function.Type == mt {
 		sqlstr := function.CreateSql(obj)
@@ -179,7 +192,15 @@ func (this *MapperDao) executeCommand(obj utils.Object, command methodType, id s
 	var dbId, affect int64
 	var err error
 	fun := func(conn *Connection, sqlstring string) {
-		dbId, affect, err = conn.ExeSql(sqlstring)
+		if sqlstring == "" {
+			if command == mt_insert {
+				dbId, affect, err = this.current.Insert(obj)
+			}
+
+		} else {
+			dbId, affect, err = conn.ExeSql(sqlstring)
+		}
+
 		if err != nil {
 			conn.Rollback()
 		} else {
@@ -196,6 +217,20 @@ func (this *MapperDao) executeCommand(obj utils.Object, command methodType, id s
 func (this *MapperDao) Insert(obj utils.Object, id string) (int64, error) {
 	dbId, _, err := this.executeCommand(obj, mt_insert, id)
 	return dbId, err
+}
+
+//一般的insert只有一条，自动选择一条，如果不存在insert，将使用template来完成插入
+func (this *MapperDao) InsertAuto(obj utils.Object) (int64, error) {
+	//查找第一条insert模板
+	for _, v := range this.templates {
+		if v.Type == mt_insert {
+			return this.Insert(obj, v.Code)
+		}
+	}
+	//如果没有insert语句，使用自动template插入
+	dbId, _, err := this.executeCommand(obj, mt_insert, "")
+	return dbId, err
+
 }
 
 func (this *MapperDao) Update(obj utils.Object, id string) (int64, error) {
