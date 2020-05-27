@@ -4,6 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	utils "github.com/aosfather/bingo_utils"
+	"github.com/aosfather/bingo_utils/files"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"strings"
 	"text/template"
 )
 
@@ -24,8 +29,33 @@ const (
 	mt_delete methodType = 12
 )
 
+func (this *methodType) UnmarshalYAML(unmarshal func(v interface{}) error) error {
+	var text string
+	unmarshal(&text)
+	text = strings.ToLower(text)
+	if text == "find" {
+		*this = mt_find
+	} else if text == "count" {
+		*this = mt_count
+	} else if text == "exist" {
+		*this = mt_exist
+	} else if text == "query" {
+		*this = mt_query
+	} else if text == "update" {
+		*this = mt_update
+	} else if text == "insert" {
+		*this = mt_insert
+	} else if text == "delete" {
+		*this = mt_delete
+	} else {
+		*this = 0
+		return fmt.Errorf("value is wrong! [ %s ]", text)
+	}
+	return nil
+}
+
 type MapperFile struct {
-	Name  string
+	Name  string `yaml:"namespace"`
 	Nodes []MapperNode
 }
 
@@ -33,6 +63,12 @@ type MapperNode struct {
 	Code     string
 	Type     methodType
 	Template string
+}
+
+func (this *MapperNode) ToFunction(namespace string) mapperfunction {
+	t := template.New(fmt.Sprintf("%s::%s", namespace, this.Code))
+	t.Parse(this.Template)
+	return mapperfunction{this.Code, this.Type, t}
 }
 
 type mapperfunction struct {
@@ -53,19 +89,60 @@ func (this *mapperfunction) CreateSql(input utils.Object) string {
 	return fmt.Sprintf("error:%s not exist!", this.Code)
 }
 
-type MapperDao struct {
-	ds        *DataSource
-	templates map[string]mapperfunction
-	current   *Connection
+type SqltemplateCollect map[string]mapperfunction
+type SqltemplateManager struct {
+	templateCollects map[string]SqltemplateCollect
 }
 
-func (this *MapperDao) loadFromfile() {
+func (this *SqltemplateManager) AddCollectFromFile(f string) {
+	if this.templateCollects == nil {
+		this.templateCollects = make(map[string]SqltemplateCollect)
+	}
+	mapperfile := MapperFile{}
+	if files.IsFileExist(f) {
+		yamlFile, err := ioutil.ReadFile(f)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		yaml.Unmarshal(yamlFile, &mapperfile)
 
+		//构建mappfunction
+		namespace := mapperfile.Name
+		collect := make(SqltemplateCollect)
+		for _, node := range mapperfile.Nodes {
+			collect[node.Code] = node.ToFunction(namespace)
+		}
+		this.templateCollects[namespace] = collect
+
+	}
+
+}
+
+func (this *SqltemplateManager) BuildDao(ds *DataSource, namespace string) *MapperDao {
+	if v, ok := this.templateCollects[namespace]; ok {
+		return &MapperDao{ds, v, nil}
+	}
+	return nil
+}
+
+type MapperDao struct {
+	ds        *DataSource
+	templates SqltemplateCollect
+	current   *Connection
 }
 
 func (this *MapperDao) BeginTransaction() {
 	this.current = this.ds.GetConnection()
 	this.current.Begin()
+}
+
+func (this *MapperDao) FinishTransaction() {
+	if this.current != nil {
+		this.current.Commit()
+		this.current.Close()
+		this.current = nil
+	}
 }
 
 func (this *MapperDao) GetDao() *BaseDao {
@@ -98,27 +175,71 @@ func (this *MapperDao) Find(obj utils.Object, id string) bool {
 	return result
 }
 
-func (this *MapperDao) Insert(obj utils.Object, id string) (int64, error) {
+func (this *MapperDao) executeCommand(obj utils.Object, command methodType, id string) (int64, int64, error) {
+	var dbId, affect int64
+	var err error
+	fun := func(conn *Connection, sqlstring string) {
+		dbId, affect, err = conn.ExeSql(sqlstring)
+		if err != nil {
+			conn.Rollback()
+		} else {
+			if this.current == nil {
+				conn.Commit()
+			}
+		}
+	}
 
-	return 0, nil
+	this.execute(obj, id, command, fun)
+	return dbId, affect, err
+}
+
+func (this *MapperDao) Insert(obj utils.Object, id string) (int64, error) {
+	dbId, _, err := this.executeCommand(obj, mt_insert, id)
+	return dbId, err
 }
 
 func (this *MapperDao) Update(obj utils.Object, id string) (int64, error) {
-	return 0, nil
+	_, affect, err := this.executeCommand(obj, mt_update, id)
+	return affect, err
 }
 
 func (this *MapperDao) Delete(obj utils.Object, id string) (int64, error) {
-	return 0, nil
+	_, affect, err := this.executeCommand(obj, mt_delete, id)
+	return affect, err
 }
 
 func (this *MapperDao) Query(obj utils.Object, page Page, id string) []interface{} {
-	return nil
+	var result []interface{}
+	fun := func(conn *Connection, sqlstring string) {
+		result = conn.QueryByPage(obj, page, sqlstring)
+	}
+	this.execute(obj, id, mt_query, fun)
+	return result
+
 }
 
-func (this *MapperDao) Count(id string) int64 {
-	return 0
+func (this *MapperDao) Count(obj utils.Object, id string) int64 {
+	var result int64
+	fun := func(conn *Connection, sqlstring string) {
+		b := conn.SimpleQuery(sqlstring, &result)
+		if !b {
+			result = 0
+		}
+	}
+	this.execute(obj, id, mt_count, fun)
+	return result
 }
 
-func (this *MapperDao) Exist(id string) bool {
-	return false
+func (this *MapperDao) Exist(obj utils.Object, id string) bool {
+	var result bool
+	fun := func(conn *Connection, sqlstring string) {
+		lowcase := strings.ToLower(sqlstring)
+		if strings.Index(lowcase, "select") <= 0 {
+			sqlstring = fmt.Sprintf("select 1 %s", sqlstring)
+		}
+		result = conn.SimpleQuery(sqlstring)
+	}
+	this.execute(obj, id, mt_exist, fun)
+	return result
+
 }

@@ -13,6 +13,7 @@ func InitDatasource(f reflect.StoreFunction) (string, interface{}) {
 		ds.DBurl = f("bingo.db.url")
 		ds.DBuser = f("bingo.db.user")
 		ds.DBpassword = f("bingo.db.password")
+		ds.DBmapper = f("bingo.db.mapper")
 		return "", &ds
 	}
 	return "", nil
