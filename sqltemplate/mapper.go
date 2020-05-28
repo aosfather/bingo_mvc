@@ -2,13 +2,16 @@ package sqltemplate
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	utils "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/files"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"reflect"
 	"strings"
+	"sync"
 	"text/template"
 )
 
@@ -66,27 +69,53 @@ type MapperNode struct {
 }
 
 func (this *MapperNode) ToFunction(namespace string) mapperfunction {
-	t := template.New(fmt.Sprintf("%s::%s", namespace, this.Code))
-	t.Parse(this.Template)
-	return mapperfunction{this.Code, this.Type, t}
+	f := mapperfunction{Code: this.Code, Type: this.Type}
+	f.Init(namespace, this.Template)
+	return f
 }
 
 type mapperfunction struct {
 	Code string
 	Type methodType
 	t    *template.Template
+	args *list.List
+	lock sync.Mutex
 }
 
-func (this *mapperfunction) CreateSql(input utils.Object) string {
+func (this *mapperfunction) Init(namespace string, temp string) {
+	this.args = list.New()
+	this.t = template.New(fmt.Sprintf("%s::%s", namespace, this.Code))
+	this.t.Funcs(template.FuncMap{"sql": this.call})
+	this.t.Parse(temp)
+}
+func (this *mapperfunction) call(str reflect.Value) interface{} {
+	this.args.PushBack(str.Interface())
+	return "?"
+
+}
+
+func (this *mapperfunction) CreateSql(input utils.Object) (string, []interface{}) {
 	if this.t != nil {
+		this.lock.Lock()
+		//重新初始化列表
+		this.args.Init()
 		buffer := new(bytes.Buffer)
 		err := this.t.Execute(buffer, input)
 		if err != nil {
 			buffer.WriteString(err.Error())
 		}
-		return buffer.String()
+
+		//将列表中的数据拷贝到参数列表中
+		var args []interface{}
+		for e := this.args.Front(); e != nil; e = e.Next() {
+			args = append(args, e.Value)
+		}
+
+		defer this.lock.Unlock()
+		return buffer.String(), args
+
 	}
-	return fmt.Sprintf("error:%s not exist!", this.Code)
+	return fmt.Sprintf("error:%s not exist!", this.Code), nil
 }
 
 type SqltemplateCollect map[string]mapperfunction
@@ -149,7 +178,7 @@ func (this *MapperDao) GetDao() *BaseDao {
 	return this.ds.GetDao()
 }
 
-type exec func(conn *Connection, sqlstring string)
+type exec func(conn *Connection, sqlstring string, args []interface{})
 
 func (this *MapperDao) execute(obj utils.Object, id string, mt methodType, e exec) {
 	session := this.current
@@ -164,7 +193,7 @@ func (this *MapperDao) execute(obj utils.Object, id string, mt methodType, e exe
 	//如果给的id为空则说明不走模板引擎
 	if id == "" {
 		if e != nil {
-			e(session, "")
+			e(session, "", nil)
 		}
 
 		return
@@ -172,17 +201,19 @@ func (this *MapperDao) execute(obj utils.Object, id string, mt methodType, e exe
 	//根据id查找模板
 	function := this.templates[id]
 	if function.Type == mt {
-		sqlstr := function.CreateSql(obj)
+		sqlstr, args := function.CreateSql(obj)
 		if e != nil {
-			e(session, sqlstr)
+			e(session, sqlstr, args)
 		}
 	}
 
 }
 func (this *MapperDao) Find(obj utils.Object, id string) bool {
 	var result bool
-	fun := func(conn *Connection, sqlstring string) {
-		result = conn.Query(obj, sqlstring)
+	fun := func(conn *Connection, sqlstring string, args []interface{}) {
+		log.Println(sqlstring)
+		log.Println(args)
+		result = conn.Query(obj, sqlstring, args...)
 	}
 	this.execute(obj, id, mt_find, fun)
 	return result
@@ -191,14 +222,14 @@ func (this *MapperDao) Find(obj utils.Object, id string) bool {
 func (this *MapperDao) executeCommand(obj utils.Object, command methodType, id string) (int64, int64, error) {
 	var dbId, affect int64
 	var err error
-	fun := func(conn *Connection, sqlstring string) {
+	fun := func(conn *Connection, sqlstring string, args []interface{}) {
 		if sqlstring == "" {
 			if command == mt_insert {
 				dbId, affect, err = this.current.Insert(obj)
 			}
 
 		} else {
-			dbId, affect, err = conn.ExeSql(sqlstring)
+			dbId, affect, err = conn.ExeSql(sqlstring, args...)
 		}
 
 		if err != nil {
@@ -245,8 +276,8 @@ func (this *MapperDao) Delete(obj utils.Object, id string) (int64, error) {
 
 func (this *MapperDao) Query(obj utils.Object, page Page, id string) []interface{} {
 	var result []interface{}
-	fun := func(conn *Connection, sqlstring string) {
-		result = conn.QueryByPage(obj, page, sqlstring)
+	fun := func(conn *Connection, sqlstring string, args []interface{}) {
+		result = conn.QueryByPage(obj, page, sqlstring, args...)
 	}
 	this.execute(obj, id, mt_query, fun)
 	return result
@@ -255,8 +286,8 @@ func (this *MapperDao) Query(obj utils.Object, page Page, id string) []interface
 
 func (this *MapperDao) Count(obj utils.Object, id string) int64 {
 	var result int64
-	fun := func(conn *Connection, sqlstring string) {
-		b := conn.SimpleQuery(sqlstring, &result)
+	fun := func(conn *Connection, sqlstring string, args []interface{}) {
+		b := conn.Query(&result, sqlstring, args...)
 		if !b {
 			result = 0
 		}
@@ -267,12 +298,13 @@ func (this *MapperDao) Count(obj utils.Object, id string) int64 {
 
 func (this *MapperDao) Exist(obj utils.Object, id string) bool {
 	var result bool
-	fun := func(conn *Connection, sqlstring string) {
+	fun := func(conn *Connection, sqlstring string, args []interface{}) {
 		lowcase := strings.ToLower(sqlstring)
 		if strings.Index(lowcase, "select") <= 0 {
 			sqlstring = fmt.Sprintf("select 1 %s", sqlstring)
 		}
-		result = conn.SimpleQuery(sqlstring)
+		var ds int64
+		result = conn.Query(&ds, sqlstring, args)
 	}
 	this.execute(obj, id, mt_exist, fun)
 	return result

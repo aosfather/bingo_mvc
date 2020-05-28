@@ -155,19 +155,27 @@ func (this *Connection) Query(result interface{}, sql string, objs ...interface{
 	}
 	defer rs.Close()
 
-	cols, _ := rs.Columns()
-	columnsMap := make(map[string]interface{}, len(cols))
-	refs := make([]interface{}, 0, len(cols))
-	for _, col := range cols {
-		var ref interface{}
-		columnsMap[col] = &ref
-		refs = append(refs, &ref)
-	}
-	if rs.Next() {
-		rs.Scan(refs...)
-		//填充result
-		reflect.FillStruct(columnsMap, result)
-		return true
+	//处理结构体
+	if reflect.IsStructPtr(result) {
+		cols, _ := rs.Columns()
+		columnsMap := make(map[string]interface{}, len(cols))
+		refs := make([]interface{}, 0, len(cols))
+		for _, col := range cols {
+			var ref interface{}
+			columnsMap[col] = &ref
+			refs = append(refs, &ref)
+		}
+		if rs.Next() {
+			rs.Scan(refs...)
+			//填充result
+			reflect.FillStruct(columnsMap, result)
+			return true
+		}
+	} else { //普通指针的赋值
+		if rs.Next() {
+			rs.Scan(result)
+			return true
+		}
 	}
 
 	return false
