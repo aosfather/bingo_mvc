@@ -127,6 +127,45 @@ func inArray(field string, cols []string) bool {
 	return false
 }
 
+func (this *SqlTemplate) CreateFromWhereSql(target interface{}, col ...string) (string, []interface{}, error) {
+	objT, objV, err := reflect2.GetStructTypeValue(target)
+	if err != nil {
+		return "", nil, err
+	}
+	var tagTableName string
+	var sqlFields, sqlwheres []string
+	var argsWhere, args []interface{}
+
+	for i := 0; i < objT.NumField(); i++ {
+		f := objT.Field(i)
+		vf := objV.Field(i)
+		if !vf.CanInterface() {
+			continue
+		}
+
+		//处理内嵌结构
+		if f.Anonymous {
+			this.addEmberStruct(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
+			continue
+		}
+
+		tagTable := f.Tag.Get(_Tag_table)
+		if tagTable != "" {
+			tagTableName = tagTable
+		}
+
+		this.addFieldAndWhere(f, vf, "", &sqlFields, &sqlwheres, &args, &argsWhere, col)
+
+	}
+
+	//如果没有指定表名就使用默认规则
+	if tagTableName == "" {
+		tagTableName = this.getDefaultTableName(objT)
+	}
+
+	return "from " + tagTableName + " where " + strings.Join(sqlwheres, " and "), argsWhere, nil
+}
+
 func (this *SqlTemplate) CreateQuerySql(target interface{}, col ...string) (string, []interface{}, error) {
 	objT, objV, err := reflect2.GetStructTypeValue(target)
 	if err != nil {
