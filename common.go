@@ -198,6 +198,20 @@ type ModelView struct {
 	Model interface{}
 }
 
+//文件表单
+type FileForm struct {
+	FileName string
+	FileSize int64
+	IsError  bool
+	Error    string
+	File     FileHandler
+}
+
+//文件容器，用于实现自定义的参数
+type FileContainer interface {
+	AddFileForm(f *FileForm)
+}
+
 type FileHandler interface {
 	io.Reader
 	io.Closer

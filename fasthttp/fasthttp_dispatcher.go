@@ -91,6 +91,38 @@ func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.Req
 			//form方式
 		} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
 			this.fillByArgs(ctx.Request.PostArgs(), input)
+		} else if strings.Contains(contentType, "multipart/form-data") {
+			mforms, err := ctx.Request.MultipartForm()
+			if err != nil {
+				return err
+			}
+
+			//填充其他参数
+			if len(mforms.Value) > 0 {
+				inputmap := make(map[string]interface{})
+				for k, v := range mforms.Value {
+					inputmap[k] = strings.Join(v, "")
+				}
+				reflect2.FillStruct(inputmap, input)
+			}
+			//处理文件内容
+			if fcontainer, ok := input.(bingo_mvc.FileContainer); ok {
+				fs := mforms.File["file"]
+				if fs != nil {
+					for _, f := range fs {
+						fm := &bingo_mvc.FileForm{FileName: f.Filename, FileSize: f.Size}
+						content, err := f.Open()
+						if err != nil {
+							fm.IsError = true
+							fm.Error = err.Error()
+						} else {
+							fm.File = content
+						}
+						fcontainer.AddFileForm(fm)
+					}
+				}
+			}
+
 		} else {
 			args := ctx.QueryArgs()
 			if args != nil {
