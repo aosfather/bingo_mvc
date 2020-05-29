@@ -6,6 +6,7 @@ import (
 	"github.com/aosfather/bingo_utils/files"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 
 	"log"
@@ -90,6 +91,19 @@ func (this *DataSource) GetDao() *BaseDao {
 func (this *DataSource) GetMapperDao(namespace string) *MapperDao {
 	if this.sqlTemplateManager != nil {
 		return this.sqlTemplateManager.BuildDao(this, namespace)
+	}
+	return nil
+}
+
+var example = &MapperDao{}
+
+func (this *DataSource) CanAssignableTo(t reflect.Type) bool {
+	debug("type name:%s", t.String())
+	return t.AssignableTo(reflect.TypeOf(example))
+}
+func (this *DataSource) Factory(config string) interface{} {
+	if this.sqlTemplateManager != nil {
+		return this.sqlTemplateManager.BuildDao(this, config)
 	}
 	return nil
 }
