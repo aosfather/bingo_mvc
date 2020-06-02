@@ -153,6 +153,8 @@ func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
 		if v != nil {
 			if _, ok := v.([]byte); ok {
 				sessionID = string(cookie[CK_Value].([]byte))
+			} else if _, ok := v.(string); ok {
+				sessionID = v.(string)
 			}
 
 		}
