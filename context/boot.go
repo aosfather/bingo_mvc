@@ -56,12 +56,17 @@ func (this *Boot) Start() {
 }
 
 func (this *Boot) StartByConfigFile(filename string) {
+	config := &YamlConfig{}
+	config.LoadFromFile(filename)
+	this.StartByConfig(config)
+}
+
+func (this *Boot) StartByConfig(config Config) {
 	go this.signalListen()
 	this.applicationContext = &ApplicationContext{}
 	//加入数据库处理模块
 	this.applicationContext.AddProcessFunction(InitDatasource, this.initDispatch)
-
-	this.applicationContext.init(filename)
+	this.applicationContext.init(config)
 	//加载factory
 	if this.onloads != nil && len(this.onloads) > 0 {
 		for _, onload := range this.onloads {

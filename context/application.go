@@ -1,14 +1,7 @@
 package context
 
 import (
-	"fmt"
-	"github.com/aosfather/bingo_utils/files"
 	container "github.com/aosfather/bingo_utils/reflect"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"log"
-	"os"
-	"strings"
 )
 
 //Bean自动初始化接口
@@ -16,12 +9,19 @@ type BeanAutoInit interface {
 	AutoInit() error
 }
 
+type Config interface {
+	//获取属性
+	GetProperty(key string) string
+	//获取自定义属性
+	GetPropertyForCustom(key string) string
+}
+
 //初始化函数
 type InitProcessFunction func(f container.StoreFunction) (string, interface{})
 
 type ApplicationContext struct {
 	initfunctions []InitProcessFunction
-	config        map[interface{}]interface{}
+	config        Config
 	services      container.InjectMan
 	holder        container.ValuesHolder
 }
@@ -34,14 +34,6 @@ func (this *ApplicationContext) shutdown() {
 
 	//关闭所有service
 
-}
-
-//不能获取bingo自身的属性，只能获取应用自身的扩展属性
-func (this *ApplicationContext) GetPropertyFromConfig(key string) string {
-	if strings.HasPrefix(key, "bingo.") {
-		return ""
-	}
-	return this.getProperty(key)
 }
 
 func (this *ApplicationContext) RegisterService(name string, service interface{}) {
@@ -62,59 +54,11 @@ func (this *ApplicationContext) GetService(name string) interface{} {
 	return nil
 }
 
-func (this *ApplicationContext) getProperty(key string) string {
-	if this.config == nil {
-		return ""
-	}
-	v, ok := this.config[key]
-	if ok {
-		return v.(string)
-	} else {
-		if strings.Index(key, ".") > 0 {
-			keys := strings.Split(key, ".")
-			return this.getvalue(this.config, keys, 0)
-		}
-	}
-	return ""
-}
-
-func (this *ApplicationContext) getvalue(m map[interface{}]interface{}, keys []string, index int) string {
-	v, ok := m[keys[index]]
-	if ok {
-		if value, ok := v.(string); ok {
-			return value
-		}
-
-		if value, ok := v.(map[interface{}]interface{}); ok {
-			return this.getvalue(value, keys, index+1)
-		}
-		if v != nil {
-			return fmt.Sprintf("%v", v)
-		}
-
-	}
-	return ""
-}
-func (this *ApplicationContext) init(file string) {
-	if file != "" && files.IsFileExist(file) {
-		f, err := os.Open(file)
-		if err == nil {
-			txt, _ := ioutil.ReadAll(f)
-			err := yaml.Unmarshal(txt, &this.config)
-			if err != nil {
-				log.Println(err.Error())
-				panic("load config file error!")
-			}
-		}
-
-	}
-	if this.config == nil {
-		this.config = make(map[interface{}]interface{})
-	}
-
+func (this *ApplicationContext) init(config Config) {
+	this.config = config
 	this.services.Init(nil)
 	this.services.AddObject(this)
-	this.holder.InitByFunction(this.GetPropertyFromConfig)
+	this.holder.InitByFunction(this.config.GetPropertyForCustom)
 	//初始化function
 	this.initByProcessFunctions()
 
@@ -124,7 +68,7 @@ func (this *ApplicationContext) init(file string) {
 func (this *ApplicationContext) initByProcessFunctions() {
 	if this.initfunctions != nil && len(this.initfunctions) > 0 {
 		for _, initfun := range this.initfunctions {
-			name, bean := initfun(this.getProperty)
+			name, bean := initfun(this.config.GetProperty)
 			if bean == nil {
 				continue
 			}
