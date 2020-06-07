@@ -150,7 +150,7 @@ func (this *SqltemplateManager) AddCollectFromFile(f string) {
 
 func (this *SqltemplateManager) BuildDao(ds *DataSource, namespace string) *MapperDao {
 	if v, ok := this.templateCollects[namespace]; ok {
-		return &MapperDao{ds, v, nil}
+		return &MapperDao{ds: ds, templates: v, current: nil}
 	}
 	return &MapperDao{ds: ds}
 }
@@ -159,14 +159,17 @@ type MapperDao struct {
 	ds        *DataSource
 	templates SqltemplateCollect
 	current   *Connection
+	locker    sync.Mutex
 }
 
 func (this *MapperDao) BeginTransaction() {
+	this.locker.Lock()
 	this.current = this.ds.GetConnection()
 	this.current.Begin()
 }
 
 func (this *MapperDao) FinishTransaction() {
+	defer this.locker.Unlock()
 	if this.current != nil {
 		this.current.Commit()
 		this.current.Close()
