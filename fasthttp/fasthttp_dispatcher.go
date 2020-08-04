@@ -5,10 +5,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/aosfather/bingo_mvc"
+	log "github.com/aosfather/bingo_utils"
 	reflect2 "github.com/aosfather/bingo_utils/reflect"
 	"github.com/valyala/fasthttp"
 	"io/ioutil"
-	"log"
 	"reflect"
 	"strings"
 )
@@ -41,7 +41,7 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 			ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
 			ctx.Response.SetBodyString("<b>the url not found!</b>")
 			ctx.Response.SetStatusCode(404)
-			log.Printf("the url %s not found\n", url)
+			log.Debugf("the url %s not found\n", url)
 		} else {
 			ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, meta)
 		}

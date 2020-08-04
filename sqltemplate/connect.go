@@ -46,7 +46,7 @@ func (this *Connection) Rollback() {
 
 func (this *Connection) prepare(sql string) (*sql.Stmt, error) {
 	if this.isTx {
-		debug("%v", this.tx)
+		utils.Debugf("%v", this.tx)
 		return this.tx.Prepare(sql)
 	} else if this.db != nil {
 		return this.db.Prepare(sql)
@@ -61,13 +61,13 @@ func (this *Connection) Close() {
 func (this *Connection) SimpleQuery(sql string, obj ...interface{}) bool {
 	stmt, err := this.prepare(sql)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return false
 	}
 	defer stmt.Close()
 	rs, err := stmt.Query()
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return false
 	}
 	defer rs.Close()
@@ -83,14 +83,14 @@ func (this *Connection) SimpleQuery(sql string, obj ...interface{}) bool {
 func (this *Connection) ExeSql(sql string, objs ...interface{}) (id int64, affect int64, err error) {
 	stmt, err := this.prepare(sql)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return 0, 0, err
 	}
 	defer stmt.Close()
 
 	rs, err := stmt.Exec(objs...)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return 0, 0, err
 	}
 	id, _ = rs.LastInsertId()
@@ -103,13 +103,13 @@ func (this *Connection) QueryByPage(result interface{}, page Page, sql string, o
 	//使用真分页的方式实现
 	stmt, err := this.prepare(sql + buildMySqlLimitSql(page))
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return nil
 	}
 	defer stmt.Close()
 	rs, err := stmt.Query(objs...)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return nil
 	}
 	defer rs.Close()
@@ -144,13 +144,13 @@ func (this *Connection) QueryByPage(result interface{}, page Page, sql string, o
 func (this *Connection) Query(result interface{}, sql string, objs ...interface{}) bool {
 	stmt, err := this.prepare(sql)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return false
 	}
 	defer stmt.Close()
 	rs, err := stmt.Query(objs...)
 	if err != nil {
-		debug("%v", err)
+		utils.Debugf("%v", err)
 		return false
 	}
 	defer rs.Close()
@@ -186,7 +186,7 @@ func (this *Connection) Insert(obj interface{}) (id int64, affect int64, err err
 	if err != nil {
 		return 0, 0, err
 	}
-	debug("%v", err)
+	utils.Debugf("%v", err)
 	return this.ExeSql(sql, args...)
 }
 
@@ -195,7 +195,7 @@ func (this *Connection) Find(obj interface{}, col ...string) bool {
 	if err != nil {
 		return false
 	}
-	debug("%v", err)
+	utils.Debugf("%v", err)
 	return this.Query(obj, sql, args...)
 
 }
@@ -205,7 +205,7 @@ func (this *Connection) Update(obj interface{}, col ...string) (id int64, affect
 	if err != nil {
 		return 0, 0, err
 	}
-	debug("%v", sql)
+	utils.Debugf("%v", sql)
 	return this.ExeSql(sql, args...)
 }
 
@@ -214,7 +214,7 @@ func (this *Connection) Delete(obj interface{}, col ...string) (id int64, affect
 	if err != nil {
 		return 0, 0, err
 	}
-	debug("%v", sql)
+	utils.Debugf("%v", sql)
 	return this.ExeSql(sql, args...)
 }
 

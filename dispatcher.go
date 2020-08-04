@@ -2,8 +2,8 @@ package bingo_mvc
 
 import (
 	"fmt"
+	log "github.com/aosfather/bingo_utils"
 	"io"
-	"log"
 )
 
 //协议头接口
@@ -71,7 +71,7 @@ func (this *AbstractDispatcher) AddRequestMapper(r *RequestMapper) {
 		this.dispatchManager.Init()
 	}
 
-	log.Println(r.ResponseStyle)
+	log.Debug(r.ResponseStyle)
 	//使用模板来默认处理html格式
 	if r.ResponseStyle == UrlForm {
 		r.Response = this.convertToHtmlByTemplate

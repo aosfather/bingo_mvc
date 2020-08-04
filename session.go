@@ -117,6 +117,8 @@ type SessionManager struct {
 	maxCacheTime int64                   //垃圾回收时间
 	mMaxLifeTime int64                   //session的有效时间
 	sessions     map[string]*HttpSession //保存session的指针[sessionID] = session
+	maxSession   int                     //最大允许的session数目
+	maxPrevent   bool                    //达到最大数目后阻止登录
 }
 
 func (this *SessionManager) SetStore(store SessionStore) {

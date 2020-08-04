@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	log "github.com/aosfather/bingo_utils"
 	utils "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/files"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -131,7 +131,7 @@ func (this *SqltemplateManager) AddCollectFromFile(f string) {
 	if files.IsFileExist(f) {
 		yamlFile, err := ioutil.ReadFile(f)
 		if err != nil {
-			log.Println(err.Error())
+			log.Err(err.Error())
 			return
 		}
 		yaml.Unmarshal(yamlFile, &mapperfile)

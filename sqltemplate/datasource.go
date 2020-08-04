@@ -9,12 +9,8 @@ import (
 	"reflect"
 	"strings"
 
-	"log"
+	log "github.com/aosfather/bingo_utils"
 )
-
-func debug(msg string, obj ...interface{}) {
-	log.Printf(msg, obj...)
-}
 
 /**
   data source
@@ -58,7 +54,7 @@ func (this *DataSource) Init() {
 		if err == nil {
 			this.pool.Ping()
 		} else {
-			debug("%v", err)
+			log.Debugf("%v", err)
 		}
 
 	}
@@ -98,7 +94,7 @@ func (this *DataSource) GetMapperDao(namespace string) *MapperDao {
 var example = &MapperDao{}
 
 func (this *DataSource) CanAssignableTo(t reflect.Type) bool {
-	debug("type name:%s", t.String())
+	log.Debugf("type name:%s", t.String())
 	return t.AssignableTo(reflect.TypeOf(example))
 }
 func (this *DataSource) Factory(config string) interface{} {

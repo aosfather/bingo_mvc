@@ -2,10 +2,10 @@ package context
 
 import (
 	"fmt"
+	log "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/files"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 )
@@ -21,7 +21,7 @@ func (this *YamlConfig) LoadFromFile(file string) {
 			txt, _ := ioutil.ReadAll(f)
 			err := yaml.Unmarshal(txt, &this.config)
 			if err != nil {
-				log.Println(err.Error())
+				log.Err(err.Error())
 				panic("load config file error!")
 			}
 		}

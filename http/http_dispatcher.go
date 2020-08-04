@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/aosfather/bingo_mvc"
+	log "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/reflect"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -57,7 +57,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 			writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
 			writer.WriteHeader(404)
 			writer.Write([]byte("<b>the url not found!</b>"))
-			log.Printf("the url %s not found\n", url)
+			log.Debugf("the url %s not found\n", url)
 		} else {
 			writer.Header().Set(bingo_mvc.CONTENT_TYPE, meta)
 			writer.Write(buffer.Bytes())
