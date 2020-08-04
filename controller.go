@@ -88,6 +88,16 @@ func TypeOfMap() interface{} {
 	return _mapType
 }
 
+//空请求参数，无参数请求
+type _EmptyRequest struct {
+}
+
+var _Empty = new(_EmptyRequest)
+
+func TypeOfEmpty() interface{} {
+	return _Empty
+}
+
 //handle的map，用户获取handle列表
 func NewHandleMap() HandleMap {
 	return make(HandleMap)
@@ -123,14 +133,16 @@ func (this *staticControl) Getstaticfile(url string, writer io.Writer) (string, 
 	filename := this.root + url
 	if files.IsFileExist(filename) {
 		fixIndex := strings.LastIndex(filename, ".")
-		fileSufix := string([]byte(filename)[fixIndex:])
-		media := getMedia(fileSufix)
-		fi, err := os.Open(filename)
-		if err != nil {
-			return "", err
+		if fixIndex > 0 {
+			fileSufix := string([]byte(filename)[fixIndex:])
+			media := getMedia(fileSufix)
+			fi, err := os.Open(filename)
+			if err != nil {
+				return "", err
+			}
+			io.Copy(writer, fi)
+			return media, nil
 		}
-		io.Copy(writer, fi)
-		return media, nil
 	}
 	return "", fmt.Errorf("file not exist!")
 }
