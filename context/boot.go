@@ -2,10 +2,10 @@ package context
 
 import (
 	"github.com/aosfather/bingo_mvc"
+	log "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/files"
 	logs "github.com/aosfather/bingo_utils/log"
 	"github.com/aosfather/bingo_utils/reflect"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -95,7 +95,7 @@ func (this *Boot) StartByConfig(config Config) {
 func (this *Boot) initDispatch(f reflect.StoreFunction) (string, interface{}) {
 	if this.dispatch != nil {
 		port, _ := strconv.Atoi(f("bingo.port"))
-		log.Println(port)
+		log.Debug(port)
 		this.dispatch.ConfigPort(port)
 		this.dispatch.ConfigStatic(f("bingo.static"))
 		this.dispatch.ConfigTemplate(f("bingo.template"), f("bingo.template_fix"))
@@ -122,7 +122,7 @@ func (this *Boot) signalListen() {
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, SIGUSR1, SIGUSR2)
 	s := <-c
 	//收到信号后的处理，这里只是输出信号内容，可以做一些更有意思的事
-	log.Printf("get signal:%s", s)
+	log.Debugf("get signal:%s", s)
 	this.processShutdown()
 
 }
