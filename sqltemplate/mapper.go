@@ -374,7 +374,7 @@ func (this *MapperDao) ExistByObj(obj utils.Object, col ...string) bool {
 		}
 		sqlstring = fmt.Sprintf("select 1 %s", sqlstring)
 		var ds int64
-		result = conn.Query(&ds, sqlstring, args)
+		result = conn.Query(&ds, sqlstring, args...)
 	}
 	this.execute(obj, "", mt_exist, fun)
 	return result
@@ -388,7 +388,7 @@ func (this *MapperDao) Exist(obj utils.Object, id string) bool {
 			sqlstring = fmt.Sprintf("select 1 %s", sqlstring)
 		}
 		var ds int64
-		result = conn.Query(&ds, sqlstring, args)
+		result = conn.Query(&ds, sqlstring, args...)
 	}
 	this.execute(obj, id, mt_exist, fun)
 	return result

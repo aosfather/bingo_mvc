@@ -57,6 +57,14 @@ func (this *DataSource) Init() {
 			log.Debugf("%v", err)
 		}
 
+	} else if strings.ToLower(this.DBtype) == "sqlite" { //sqlite使用最新的sqlite3
+		var err error
+		this.pool, err = sql.Open("sqlite3", this.DBurl)
+		if err == nil {
+			this.pool.Ping()
+		} else {
+			log.Debugf("%v", err)
+		}
 	}
 }
 
