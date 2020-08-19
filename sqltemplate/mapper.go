@@ -281,6 +281,15 @@ func (this *MapperDao) InsertAuto(obj utils.Object) (int64, error) {
 
 }
 
+//插入或更新，当存在数据的时候更新，不存在则插入
+func (this *MapperDao) InsertOrUpdateByExist(obj utils.Object, exitsCols []string, updateCols []string) (int64, error) {
+	if this.ExistByObj(obj, exitsCols...) {
+		return this.UpdateByObj(obj, updateCols...)
+	} else {
+		return this.InsertByObj(obj)
+	}
+}
+
 func (this *MapperDao) UpdateByObj(obj utils.Object, col ...string) (int64, error) {
 	_, affect, err := this.executeCommand(obj, mt_update, "", col...)
 	return affect, err
