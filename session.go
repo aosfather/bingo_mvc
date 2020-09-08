@@ -151,24 +151,26 @@ func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
 		defer this.lock.Unlock()
 
 		v := cookie[CK_Value]
-		var sessionID = ""
+		var sessionID string
 		if v != nil {
 			if _, ok := v.([]byte); ok {
 				sessionID = string(cookie[CK_Value].([]byte))
+
 			} else if _, ok := v.(string); ok {
 				sessionID = v.(string)
 			}
 
 		}
+		if sessionID != "" {
+			if session, ok := this.sessions[sessionID]; ok {
+				session.lastTimeAccessed = time.Now() //判断合法性的同时，更新最后的访问时间
+				return session
+			} else if this.store.Exist(sessionID) { //从store中检查session，如果存在则加载
+				session = &HttpSession{mSessionID: sessionID, lastTimeAccessed: time.Now(), mNew: false, mStrore: this.store}
+				this.sessions[sessionID] = session
+				return session
 
-		if session, ok := this.sessions[sessionID]; ok {
-			session.lastTimeAccessed = time.Now() //判断合法性的同时，更新最后的访问时间
-			return session
-		} else if this.store.Exist(sessionID) { //从store中检查session，如果存在则加载
-			session = &HttpSession{mSessionID: sessionID, lastTimeAccessed: time.Now(), mNew: false, mStrore: this.store}
-			this.sessions[sessionID] = session
-			return session
-
+			}
 		}
 
 	}
