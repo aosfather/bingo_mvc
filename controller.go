@@ -36,36 +36,50 @@ func (this *RequestMapper) IsSupportMethod(m HttpMethodType) bool {
 }
 
 func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) error) StyleType {
-	t := reflect.TypeOf(this.Request)
-	if t.Kind() == reflect.Ptr { //指针类型获取真正type需要调用Elem
-		t = t.Elem()
-	}
 	var paramter interface{}
-	//获取请求参数
-	if t.Kind() == reflect.Map {
-		paramter = reflect.MakeMap(t).Interface()
+	var err error
+	if this.Request != nil {
+		t := reflect.TypeOf(this.Request)
+		if t.Kind() == reflect.Ptr { //指针类型获取真正type需要调用Elem
+			t = t.Elem()
+		}
 
-	} else {
-		paramter = reflect.New(t).Interface()
+		//获取请求参数
+		if t.Kind() == reflect.Map {
+			paramter = reflect.MakeMap(t).Interface()
+
+		} else {
+			paramter = reflect.New(t).Interface()
+		}
+
+		err = input(paramter)
 	}
 
-	err := input(paramter)
 	if err == nil {
-		//处理，并渲染
-		result := this.Handle(paramter)
-		if this.Response != nil {
-			err = this.Response(writer, result)
+		if this.Handle != nil {
+			//处理，并渲染
+			result := this.Handle(paramter)
+			err = this.writeResponse(writer, result)
 		} else {
-			writer.Write([]byte(fmt.Sprintf("%v", result)))
+			this.writeResponse(writer, "not found url handle!")
 		}
 
 		//错误处理进行输出
 		if err != nil {
-
+			this.writeResponse(writer, fmt.Sprintf("error:%s", err.Error()))
 		}
 	}
 
 	return this.ResponseStyle
+
+}
+func (this *RequestMapper) writeResponse(w io.Writer, r interface{}) error {
+	if this.Response != nil {
+		return this.Response(w, r)
+	} else {
+		w.Write([]byte(fmt.Sprintf("%v", r)))
+	}
+	return nil
 
 }
 

@@ -19,12 +19,14 @@ type Connection struct {
 
 func (this *Connection) Begin() {
 	if this.isTx {
-		panic("tx has opened!")
+		utils.Err("tx has opened!")
+		return
 	}
 	var err error
 	this.tx, err = this.db.Begin()
 	if err != nil {
-		panic("db open error" + err.Error())
+		utils.Err("db open error" + err.Error())
+		return
 	}
 	this.isTx = true
 
