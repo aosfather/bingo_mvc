@@ -7,6 +7,9 @@ import (
 	"github.com/aosfather/bingo_utils/reflect"
 )
 
+//最大重试次数
+const Max_RETRY = 10
+
 /**
   数据库 连接包装
 */
@@ -22,11 +25,20 @@ func (this *Connection) Begin() {
 		utils.Err("tx has opened!")
 		return
 	}
+	times := 0
+opentx:
 	var err error
 	this.tx, err = this.db.Begin()
 	if err != nil {
-		utils.Err("db open error" + err.Error())
-		return
+		if times > Max_RETRY {
+			utils.Err("retry times reach max times! ")
+			return
+		}
+
+		times++
+		utils.Err("db open error ", err.Error(), " retry the ", times, " times!")
+
+		goto opentx
 	}
 	this.isTx = true
 
