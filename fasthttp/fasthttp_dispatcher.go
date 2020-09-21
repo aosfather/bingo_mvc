@@ -22,6 +22,12 @@ type FastHTTPDispatcher struct {
 }
 
 func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
+	defer this.HandlePainc(func(v interface{}) {
+		ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
+		ctx.Response.SetBodyString(fmt.Sprintf("<b>runtime error!</b><p>%v</p>", v))
+		ctx.Response.SetStatusCode(500)
+	})
+
 	url := string(ctx.Request.URI().RequestURI())
 
 	//domain := string(ctx.Request.Header.Host())

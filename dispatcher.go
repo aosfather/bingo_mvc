@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/aosfather/bingo_utils"
 	"io"
+	"runtime"
 )
 
 //协议头接口
@@ -32,6 +33,18 @@ type AbstractDispatcher struct {
 	templateManager *TemplateEngine
 	static          *staticControl
 	sessionManager  *SessionManager
+}
+
+func (this *AbstractDispatcher) HandlePainc(after func(v interface{})) {
+	if err := recover(); err != nil {
+		const size = 64 << 10
+		buf := make([]byte, size)
+		buf = buf[:runtime.Stack(buf, false)]
+		log.Err("http: panic serving :", err, " ,statck:\n", string(buf))
+		if after != nil {
+			after(err)
+		}
+	}
 }
 
 func (this *AbstractDispatcher) AddInterceptor(ins ...Interceptor) {

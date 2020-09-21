@@ -4,6 +4,7 @@ import (
 	. "bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"github.com/aosfather/bingo_mvc"
 	log "github.com/aosfather/bingo_utils"
 	"github.com/aosfather/bingo_utils/reflect"
@@ -38,6 +39,11 @@ func (this *HttpDispatcher) shutdown() {
 }
 
 func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	defer this.HandlePainc(func(v interface{}) {
+		writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
+		writer.WriteHeader(500)
+		writer.Write([]byte(fmt.Sprintf("<b>runtime error!</b><p>%v</p>", v)))
+	})
 	url := request.RequestURI
 	//设置服务器名称
 	writer.Header().Set("Server", "bingo mvc")
