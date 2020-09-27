@@ -3,6 +3,7 @@ package bingo_mvc
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"strconv"
 	"sync"
@@ -153,11 +154,13 @@ func (this *SessionManager) GetSession(face CookieFace) *HttpSession {
 		v := cookie[CK_Value]
 		var sessionID string
 		if v != nil {
-			if _, ok := v.([]byte); ok {
-				sessionID = string(cookie[CK_Value].([]byte))
+			if data, ok := v.([]byte); ok {
+				sessionID = string(data)
 
-			} else if _, ok := v.(string); ok {
-				sessionID = v.(string)
+			} else if data, ok := v.(string); ok {
+				sessionID = data
+			} else {
+				sessionID = fmt.Sprintf("%v", data)
 			}
 
 		}
