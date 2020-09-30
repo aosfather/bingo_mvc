@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
-
+// url path :id.etc:/xx/:id.例如 /xx/:name/:id/info,其中name和id为参数
 type Handle interface{}
 type Param struct {
 	Key   string
