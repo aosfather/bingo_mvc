@@ -185,6 +185,24 @@ func (this *Connection) Query(result interface{}, sql string, objs ...interface{
 			reflect.FillStruct(columnsMap, result)
 			return true
 		}
+	} else if reflect.IsMap(result) {
+		cols, _ := rs.Columns()
+		columnsMap := make(map[string]interface{}, len(cols))
+		refs := make([]interface{}, 0, len(cols))
+		for _, col := range cols {
+			var ref interface{}
+			columnsMap[col] = &ref
+			refs = append(refs, &ref)
+		}
+		if rs.Next() {
+			rs.Scan(refs...)
+			//填充map
+			target := *result.(*map[string]interface{})
+			for key, value := range columnsMap {
+				target[key] = reflect.GetRealValue(value)
+			}
+			return true
+		}
 	} else { //普通指针的赋值
 		if rs.Next() {
 			rs.Scan(result)
