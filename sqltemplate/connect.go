@@ -60,7 +60,7 @@ func (this *Connection) Rollback() {
 
 func (this *Connection) prepare(sql string) (*sql.Stmt, error) {
 	if this.isTx {
-		utils.Debugf("%v", this.tx)
+		//utils.Debugf("%v", this.tx)
 		return this.tx.Prepare(sql)
 	} else if this.db != nil {
 		return this.db.Prepare(sql)
