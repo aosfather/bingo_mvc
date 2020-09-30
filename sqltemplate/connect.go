@@ -142,9 +142,18 @@ func (this *Connection) QueryByPage(result interface{}, page Page, sql string, o
 			}
 
 			rs.Scan(refs...)
-			arrayItem := reflect.CreateObjByType(resultType)
+			var arrayItem interface{}
+
 			//填充result
-			reflect.FillStruct(columnsMap, arrayItem)
+			if reflect.IsMapPtr(result) || reflect.IsMap(result) {
+				targetResult := make(map[string]interface{})
+				this.fillToMap(columnsMap, &targetResult)
+				arrayItem = targetResult
+			} else {
+				arrayItem = reflect.CreateObjByType(resultType)
+				reflect.FillStruct(columnsMap, arrayItem)
+			}
+
 			resultArray = append(resultArray, arrayItem)
 
 			//index++
@@ -170,7 +179,7 @@ func (this *Connection) Query(result interface{}, sql string, objs ...interface{
 	defer rs.Close()
 
 	//处理结构体
-	if reflect.IsStructPtr(result) {
+	if reflect.IsStructPtr(result) || reflect.IsMapPtr(result) {
 		cols, _ := rs.Columns()
 		columnsMap := make(map[string]interface{}, len(cols))
 		refs := make([]interface{}, 0, len(cols))
@@ -182,25 +191,13 @@ func (this *Connection) Query(result interface{}, sql string, objs ...interface{
 		if rs.Next() {
 			rs.Scan(refs...)
 			//填充result
-			reflect.FillStruct(columnsMap, result)
-			return true
-		}
-	} else if reflect.IsMap(result) {
-		cols, _ := rs.Columns()
-		columnsMap := make(map[string]interface{}, len(cols))
-		refs := make([]interface{}, 0, len(cols))
-		for _, col := range cols {
-			var ref interface{}
-			columnsMap[col] = &ref
-			refs = append(refs, &ref)
-		}
-		if rs.Next() {
-			rs.Scan(refs...)
-			//填充map
-			target := *result.(*map[string]interface{})
-			for key, value := range columnsMap {
-				target[key] = reflect.GetRealValue(value)
+			if reflect.IsMapPtr(result) {
+				//填充map
+				this.fillToMap(columnsMap, result)
+			} else {
+				reflect.FillStruct(columnsMap, result)
 			}
+
 			return true
 		}
 	} else { //普通指针的赋值
@@ -211,6 +208,14 @@ func (this *Connection) Query(result interface{}, sql string, objs ...interface{
 	}
 
 	return false
+}
+
+//填充到map中
+func (this *Connection) fillToMap(columnsMap map[string]interface{}, result interface{}) {
+	target := *result.(*map[string]interface{})
+	for key, value := range columnsMap {
+		target[key] = reflect.GetRealValue(value)
+	}
 }
 
 func (this *Connection) Insert(obj interface{}) (id int64, affect int64, err error) {
