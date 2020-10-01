@@ -40,7 +40,7 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	//获取requestmapper定义
-	request := this.MatchUrl(url)
+	request ,p:= this.MatchUrl(url)
 	if request == nil {
 		meta, err := this.ProcessStaticUrl(url, ctx.Response.BodyWriter())
 		if err != nil {
@@ -54,7 +54,7 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 
 	} else {
 		if request.IsSupportMethod(bingo_mvc.ParseHttpMethodType(string(ctx.Method()))) {
-			this.call(request, ctx)
+			this.call(request, ctx,p)
 		} else {
 			//不支持的 http method 处理
 			ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
@@ -68,7 +68,7 @@ func (this *FastHTTPDispatcher) handle(ctx *fasthttp.RequestCtx) {
 
 }
 
-func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.RequestCtx) {
+func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.RequestCtx,p bingo_mvc.Params) {
 	//校验参数
 	contentType := string(ctx.Request.Header.ContentType())
 	//var input map[string]interface{} = make(map[string]interface{})
@@ -96,7 +96,7 @@ func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.Req
 			}
 			//form方式
 		} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
-			this.fillByArgs(ctx.Request.PostArgs(), input)
+			this.fillByArgs(ctx.Request.PostArgs(),p, input)
 		} else if strings.Contains(contentType, "multipart/form-data") {
 			mforms, err := ctx.Request.MultipartForm()
 			if err != nil {
@@ -132,7 +132,7 @@ func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.Req
 		} else {
 			args := ctx.QueryArgs()
 			if args != nil {
-				this.fillByArgs(args, input)
+				this.fillByArgs(args, p,input)
 			}
 		}
 		return nil
@@ -142,7 +142,7 @@ func (this *FastHTTPDispatcher) call(api bingo_mvc.Controller, ctx *fasthttp.Req
 	ctx.Response.Header.Set(bingo_mvc.CONTENT_TYPE, st.GetContentType())
 }
 
-func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{}) {
+func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args,p bingo_mvc.Params, input interface{}) {
 	if args == nil || input == nil {
 		return
 	}
@@ -156,6 +156,10 @@ func (this *FastHTTPDispatcher) fillByArgs(args *fasthttp.Args, input interface{
 	args.VisitAll(func(key, value []byte) {
 		inputmap[string(key)] = string(value)
 	})
+	//增加 url path上的参数
+	for _,v:=range p{
+		inputmap[v.Key]=v.Value
+	}
 	//如果传入的不是map类型则填充值到struct上
 	if &inputmap != input {
 		reflect2.FillStruct(inputmap, input)

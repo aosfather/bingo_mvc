@@ -55,7 +55,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 		return
 	}
 	//获取requestmapper定义
-	requestMapper := this.MatchUrl(url)
+	requestMapper ,p:= this.MatchUrl(url)
 	if requestMapper == nil {
 		buffer := new(Buffer)
 		meta, err := this.ProcessStaticUrl(url, buffer)
@@ -70,7 +70,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 	} else {
 		if requestMapper.IsSupportMethod(bingo_mvc.ParseHttpMethodType(request.Method)) {
-			this.call(requestMapper, request, writer)
+			this.call(requestMapper, request,p, writer)
 		} else {
 			//不支持的 http method 处理
 			writer.Header().Set(bingo_mvc.CONTENT_TYPE, "text/html;charset=utf-8")
@@ -81,7 +81,7 @@ func (this *HttpDispatcher) ServeHTTP(writer http.ResponseWriter, request *http.
 
 }
 
-func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request, writer http.ResponseWriter) {
+func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request,p bingo_mvc.Params, writer http.ResponseWriter) {
 	//校验参数
 	contentType := request.Header.Get(bingo_mvc.CONTENT_TYPE)
 	inputfunc := func(input interface{}) error {
@@ -110,7 +110,7 @@ func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request
 			if request.PostForm == nil {
 				request.ParseForm()
 			}
-			this.fillByForm(request.PostForm, input)
+			this.fillByForm(request.PostForm,p, input)
 		} else if strings.Contains(contentType, "multipart/form-data") {
 			err := request.ParseMultipartForm(256)
 			if err != nil {
@@ -149,7 +149,7 @@ func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request
 			if request.Form == nil {
 				request.ParseForm()
 			}
-			this.fillByForm(request.Form, input)
+			this.fillByForm(request.Form, p,input)
 
 		}
 		return nil
@@ -160,7 +160,10 @@ func (this *HttpDispatcher) call(api bingo_mvc.Controller, request *http.Request
 	writer.Write(buffer.Bytes())
 }
 
-func (this *HttpDispatcher) fillByForm(form url.Values, input interface{}) {
+func (this *HttpDispatcher) fillByForm(form url.Values, p bingo_mvc.Params,input interface{}) {
+	for _,v:=range p{
+		form.Add(v.Key,v.Value)
+	}
 	if reflect.IsMap(input) {
 		if sr, ok := input.(map[string]interface{}); ok {
 			for key, _ := range form {

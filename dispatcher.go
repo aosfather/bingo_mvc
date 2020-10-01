@@ -111,11 +111,11 @@ func (this *AbstractDispatcher) ProcessStaticUrl(url string, writer io.Writer) (
 
 }
 
-func (this *AbstractDispatcher) MatchUrl(u string) Controller {
+func (this *AbstractDispatcher) MatchUrl(u string) (Controller,Params) {
 	if this.dispatchManager != nil {
 		return this.dispatchManager.GetController("", u)
 	}
-	return nil
+	return nil,nil
 }
 
 //执行请求

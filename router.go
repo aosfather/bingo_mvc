@@ -21,7 +21,7 @@ func (this *DispatchManager) Init() {
 }
 
 //根据域名和url获取对应的API
-func (this *DispatchManager) GetApi(domain, url string) Handle {
+func (this *DispatchManager) GetApi(domain, url string) (Handle,Params) {
 	node := this.domainNode[domain]
 	if node == nil {
 		node = this.defaultNode
@@ -34,14 +34,14 @@ func (this *DispatchManager) GetApi(domain, url string) Handle {
 			realuri = TrimSpace((url[:paramIndex]))
 		}
 
-		h, _, _ := node.getValue(realuri)
+		h, p, _ := node.getValue(realuri)
 		if h != nil {
 			key := h.(string)
-			return this.apiMap[key]
+			return this.apiMap[key],p
 		}
 
 	}
-	return nil
+	return nil,nil
 }
 
 /**
@@ -87,17 +87,17 @@ func (this *DispatchManager) AddRequestMapper(domain string, r *RequestMapper) {
 }
 
 func (this *DispatchManager) GetRequestMapper(domain, url string) *RequestMapper {
-	r := this.GetApi(domain, url)
+	r,_ := this.GetApi(domain, url)
 	if r != nil {
 		return r.(*RequestMapper)
 	}
 	return nil
 }
 
-func (this *DispatchManager) GetController(domain, url string) Controller {
-	r := this.GetApi(domain, url)
+func (this *DispatchManager) GetController(domain, url string) (Controller,Params) {
+	r,p := this.GetApi(domain, url)
 	if r != nil {
-		return r.(Controller)
+		return r.(Controller),p
 	}
-	return nil
+	return nil,nil
 }
