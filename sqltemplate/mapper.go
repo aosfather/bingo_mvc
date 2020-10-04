@@ -393,7 +393,7 @@ func (this *MapperDao) Exist(obj utils.Object, id string) bool {
 	var result bool
 	fun := func(conn *Connection, sqlstring string, args []interface{}) {
 		lowcase := strings.ToLower(sqlstring)
-		if strings.Index(lowcase, "select") <= 0 {
+		if strings.Index(lowcase, "select") < 0 {
 			sqlstring = fmt.Sprintf("select 1 %s", sqlstring)
 		}
 		var ds int64
