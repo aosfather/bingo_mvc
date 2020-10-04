@@ -22,12 +22,24 @@ type AuthEngine struct {
 	RoleMeta  RoleReader      `Inject:""`
 }
 
+func(this *AuthEngine)ExistTable(tablename string) bool {
+	if this.TableMeta.GetTable(tablename)!=nil {
+		return true
+	}
+	return false
+}
+
 /*
 tableTrigger 触发标识，用于识别出对应的权限表
 parameters   参数
 roles 角色列表
+如果触发的是不存在的权限控制，则认为拥有权限。如同空气不被控制，获取空气就认为是拥有权限的
 */
 func (this *AuthEngine) HasPermition(tableTrigger string, parameters map[string]interface{}, roles ...string) bool {
+	if !this.ExistTable(tableTrigger) {
+		return true
+	}
+
 	for _, role := range roles {
 		roleObj := this.RoleMeta.GetRole(role)
 		if roleObj != nil {
