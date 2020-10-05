@@ -61,6 +61,10 @@ func SetDictMeta(dm DictMeta){
 	}
 
 }
+
+func GetDict(d string)*DictCatalog{
+	return _dictMeta(d)
+}
 //校验字典的值
 func validateByDict(code string,expr string ,v interface{}) (bool, string) {
 	if _dictMeta==nil {

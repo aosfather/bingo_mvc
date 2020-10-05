@@ -79,6 +79,8 @@ func LoadConfig(cf string){
 
 	}
 }
+
+//默认dict meta实现
 var _dicts map[string]*DictCatalog=make(map[string]*DictCatalog)
 func getDictCatalog(d string)*DictCatalog{
 	return _dicts[d]

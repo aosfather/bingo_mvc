@@ -98,6 +98,38 @@ type DataElement struct {
 	Validater validatefunction //校验器
 	ValidateExpr      string //校验表达式
 	Convertor  string //转换器
+	ConvertorExpr string
+	_convertor Convertor
+}
+
+func (this *DataElement)Input(v interface{}) interface{}{
+	if v!=nil {
+		if this._convertor!=nil {
+			return this._convertor.Input(v)
+		}
+		if this.Convertor!=""{
+			if factory,ok:=_convertors[this.Convertor];ok{
+				this._convertor=factory(this.ConvertorExpr)
+				return this._convertor.Input(v)
+			}
+		}
+	}
+	return nil
+}
+
+func (this *DataElement)Output(v interface{}) interface{}{
+	if v!=nil {
+		if this._convertor!=nil {
+			return this._convertor.Output(v)
+		}
+		if this.Convertor!=""{
+			if factory,ok:=_convertors[this.Convertor];ok{
+				this._convertor=factory(this.ConvertorExpr)
+				return this._convertor.Output(v)
+			}
+		}
+	}
+	return nil
 }
 
 func (this *DataElement)Validate(v interface{}) (bool,int){
@@ -129,4 +161,23 @@ type DictCatalogItem struct {
 	Virtual bool              //是否虚拟,表示存在有同名的词条
 	Ord     int               //显示次序
 	Extends map[string]string //扩展属性
+}
+
+//转换器工厂
+type ConvertorFactory func(expr string) Convertor
+//转换器
+type Convertor interface {
+	//输入转换
+	Input(v interface{})interface{}
+	//输出转换
+	Output(v interface{})interface{}
+}
+//系统转换器
+var _convertors map[string]ConvertorFactory=make(map[string]ConvertorFactory)
+func RegisterConvertorFactory(name string ,c ConvertorFactory){
+	if name!=""&& c!=nil {
+		if _,ok:=_convertors[name];!ok{
+			_convertors[name]=c
+		}
+	}
 }

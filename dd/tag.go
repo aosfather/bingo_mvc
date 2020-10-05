@@ -71,3 +71,12 @@ func ValidateByDataType(name string,v interface{},dt string) error{
 
 	return nil
 }
+
+func InputByDataType(name string,v interface{}) interface{}{
+	de:=getDataElement(name)
+	if de!=nil {
+		return de.Input(v)
+	}
+	
+	return v
+}
