@@ -13,6 +13,11 @@ import (
 	"strings"
 )
 
+type AutoValidateFunction func(v interface{}) []error
+var _validateFunction AutoValidateFunction
+func RegisterValidate(af AutoValidateFunction){
+	_validateFunction=af
+}
 //url元信息描述
 type RequestMapper struct {
 	Name    string   //名称
@@ -57,8 +62,25 @@ func (this *RequestMapper) Select(writer io.Writer, input func(interface{}) erro
 
 	if err == nil {
 		if this.Handle != nil {
+			//配置有参数自动校验的，进行自动校验
+			if _validateFunction!=nil {
+				errs:=_validateFunction(paramter)
+				if errs!=nil&&len(errs)>0 {
+					msg:=""
+					for _,e:=range errs {
+						msg+=e.Error()+";\n"
+					}
+					err=fmt.Errorf("%s",msg)
+				}
+			}
 			//处理，并渲染
-			result := this.Handle(paramter)
+			var result interface{}
+			if err!=nil{
+				result = this.Handle(err)
+			}else {
+				result = this.Handle(paramter)
+			}
+
 			err = this.writeResponse(writer, result)
 		} else {
 			this.writeResponse(writer, "not found url handle!")
