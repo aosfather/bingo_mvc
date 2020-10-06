@@ -74,6 +74,8 @@ func LoadConfig(cf string){
 		//加载数据字典
 		for _, item := range config.Dicts {
 			_dicts[item.Code]=&item
+			//将dict注册成为数据元素
+			AddDataElement(DataElement{Code:item.Code,Label: item.Label,DataType: "_string",Validater: validateByDict,ValidateExpr: item.Code,Convertor: "Dict",ConvertorExpr: item.Code})
 		}
 		SetDictMeta(getDictCatalog)
 
@@ -84,4 +86,9 @@ func LoadConfig(cf string){
 var _dicts map[string]*DictCatalog=make(map[string]*DictCatalog)
 func getDictCatalog(d string)*DictCatalog{
 	return _dicts[d]
+}
+
+func init(){
+	//注册默认基本的domain(原始类型)
+	AddDomainType(DomainType{"_string","字符",T_string,1000000,true,nil,""})
 }

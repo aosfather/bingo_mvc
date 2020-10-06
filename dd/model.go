@@ -24,7 +24,6 @@ const (
 	T_int
 	T_date
 	T_datetime
-	T_enum     //枚举
 )
 func(this *Type) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 	var text string
@@ -39,8 +38,6 @@ func(this *Type) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 		*this=T_date
 	case "datetime":
 		*this=T_datetime
-	case "enum":
-		*this=T_enum
 	default:
 		*this=T_string
 	}
