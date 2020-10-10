@@ -1,0 +1,12 @@
+name: example
+version: 1
+description: |
+  演示样例用的流程，演示单个节点及分支节点
+inputs:
+outputs:
+start: first
+tasks: { 'first': { code: first,task:,type: normal,description: "第一个节点",inputs: { },expr:,nexts: [ second ] },
+         'second': { code: second,task: ,type: decide,description: "选择节点",inputs: { },expr:,nexts: [ third,end ] },
+         'third': { code: third,task:,type: normal,description: "第三个节点",inputs: { },expr:,nexts: [ end ] },
+         'end': { code: end,task:,type: end,description: "结束节点",inputs: { },expr:,nexts: [ second ] }
+}

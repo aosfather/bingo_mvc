@@ -1,5 +1,12 @@
 package flow
 
+import "fmt"
+
+//任务接口
+type ITask interface {
+	GetName() string
+}
+
 //管理器:任务定义管理器、流程管理器
 type TaskManager struct {
 	tasks   map[string]ITask       //任务实现
@@ -54,11 +61,6 @@ func (this *TaskManager) GetTaskImp(name string) ITask {
 
 }
 
-//任务接口
-type ITask interface {
-	GetName() string
-}
-
 type FlowManager struct {
 	flows map[string]*Flow
 }
@@ -70,26 +72,26 @@ func (this *FlowManager) Init() {
 }
 
 //发布流程
-func (this *FlowManager) Publish(f *Flow) bool {
+func (this *FlowManager) Publish(f *Flow) error {
 	if f != nil {
 		fname := f.Name
 		oldflow := this.flows[fname]
 
 		if oldflow == nil {
 			this.flows[fname] = f
-			return true
+			return nil
 		} else {
 			//版本高才会更新
 			if f.Version > oldflow.Version {
 				this.flows[fname] = f
 				//TODO 备份旧版本
-				return true
+				return nil
 			}
 		}
 
 	}
 
-	return false
+	return fmt.Errorf("flow object is nil!")
 }
 
 func (this *FlowManager) GetFlow(name string) *Flow {
@@ -101,10 +103,35 @@ func (this *FlowManager) GetFlow(name string) *Flow {
 }
 
 //删除流程
-func (this *FlowManager) Remove(name string) bool {
+func (this *FlowManager) Remove(name string) error {
 	if name != "" {
 		delete(this.flows, name)
-		return true
+		return nil
 	}
-	return false
+
+	return fmt.Errorf("flow name is empty!")
+}
+
+type WorkflowMetaManager interface {
+	Publish(flow *Flow) error
+	GetFlow(name string) *Flow
+	Remove(name string) error
+}
+
+type WorkflowManager struct {
+	FlowMeta   WorkflowMetaManager
+	Prefix     string
+	instanceNo int
+}
+
+func (this *WorkflowManager) Start(flowname string, parameters ...Parameter) error {
+	flow := this.FlowMeta.GetFlow(flowname)
+	if flow != nil {
+		finstance := Engine{}
+		this.instanceNo++
+		finstance.Init(fmt.Sprintf("%s_%s_%d", this.Prefix, flow.Name, this.instanceNo), flow)
+		finstance.Start()
+		return nil
+	}
+	return fmt.Errorf("%s flow define not exist!", flowname)
 }
