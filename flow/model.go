@@ -138,10 +138,6 @@ type TaskDefine struct {
 	OutputKeys             []string          //任务输出字段
 }
 
-//流程实例
-type FlowInstance struct {
-}
-
 type Context map[string]interface{} //上下文
 func (this *Context) GetAsString(k string) string {
 	v := *this
@@ -153,13 +149,4 @@ func (this *Context) GetAsString(k string) string {
 		return fmt.Sprintf("%v", value)
 	}
 	return ""
-}
-
-//任务实例
-type TaskInstance struct {
-	FlowInstance    string  //流程的实例Id
-	Id              int     //任务的实例Id
-	TaskName        string  //任务名称
-	InstanceContext Context //任务实例上下文，需要记录的对
-	T               *Task
 }

@@ -7,16 +7,26 @@ type Parameter struct {
 	Value interface{}
 }
 
+//任务实例
+type TaskInstance struct {
+	FlowInstance    string  //流程的实例Id
+	Id              int     //任务的实例Id
+	TaskName        string  //任务名称
+	InstanceContext Context //任务实例上下文，需要记录的对
+	T               *Task
+}
+
+type TaskExecutor func(name string, flowid string, taskid int, parameter ...Parameter)
+
 //流程实例执行引擎
 type Engine struct {
 	Id              string //实例唯一ID
 	Name            string //对应的流程名称
 	Version         int    //对应的流程版本
 	flow            *Flow
-	InstanceContext Context       //流程实例的上下文
-	task            *TaskInstance //当前任务节点
-	tm              *TaskManager  //任务管理
-	instanceNo      int           //实例序号
+	InstanceContext Context      //流程实例的上下文
+	executor        TaskExecutor //任务管理
+	instanceNo      int          //实例序号
 	taskinstances   map[int]*TaskInstance
 }
 
@@ -82,7 +92,12 @@ func (this *Engine) handle_decide(ti *TaskInstance) {
 
 func (this *Engine) handle_normal(ti *TaskInstance) {
 	bingo_utils.Debugf("handle '%v' normal", ti.TaskName)
-	this.CommitTask(ti.Id, true, "", "")
+	if this.executor != nil {
+		this.executor(ti.TaskName, this.Id, ti.Id)
+	} else {
+		this.CommitTask(ti.Id, true, "", "")
+	}
+
 }
 
 func (this *Engine) createTaskInstance(t *Task) *TaskInstance {
@@ -91,12 +106,6 @@ func (this *Engine) createTaskInstance(t *Task) *TaskInstance {
 		return &TaskInstance{this.Id, this.instanceNo, t.TaskName, make(Context), t}
 	}
 	return nil
-}
-
-//执行任务
-func (this *Engine) runTask(name string) {
-	_, plugin := this.tm.GetTask(name)
-	plugin.GetName()
 }
 
 //更新任务状态

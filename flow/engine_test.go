@@ -30,6 +30,7 @@ func TestWorkflowManager_Start(t *testing.T) {
 	meta.Init()
 	meta.Publish(&f)
 	wfm := WorkflowManager{FlowMeta: &meta, Prefix: "wf"}
+	wfm.Init()
 	wfm.Start("example")
 	n := time.Now()
 	for i := 1; i < 1000; i++ {
