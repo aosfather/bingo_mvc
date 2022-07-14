@@ -79,7 +79,7 @@ type mapperfunction struct {
 	Type methodType
 	t    *template.Template
 	args *list.List
-	lock sync.Mutex
+	lock *sync.Mutex
 }
 
 func (this *mapperfunction) Init(namespace string, temp string) {
@@ -87,6 +87,7 @@ func (this *mapperfunction) Init(namespace string, temp string) {
 	this.t = template.New(fmt.Sprintf("%s::%s", namespace, this.Code))
 	this.t.Funcs(template.FuncMap{"sql": this.call})
 	this.t.Parse(temp)
+	this.lock = &sync.Mutex{}
 }
 func (this *mapperfunction) call(str reflect.Value) interface{} {
 	this.args.PushBack(str.Interface())
